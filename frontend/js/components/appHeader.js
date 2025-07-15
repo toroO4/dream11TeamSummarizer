@@ -1,12 +1,12 @@
 // AppHeader.js - Reusable header for cricbuzz11
 
 const appHeaderHtml = `
-  <header class="fixed top-0 left-0 w-full z-50" style="background: transparent;">
+  <header class="fixed top-0 left-0 w-full z-50" style="background: transparent; height: 56px;">
     <div class="relative max-w-sm mx-auto bg-primary text-white shadow mb-2 rounded-b-xl overflow-hidden">
       <img src="https://fantasy.cricbuzz11.com/_next/image?url=https%3A%2F%2Ffantasy.cricbuzz11.com%2Fhulk-static-images%2Fassets%2Fimages%2Fheader%2Fheader-mask.png&w=828&q=75" alt="header-mask" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none z-0" width="390" height="92" decoding="async" />
       <div class="w-full flex items-center justify-between px-4 py-2 relative z-10" style="min-height:56px;">
         <div class="flex items-center gap-2">
-          <span class="inline-block align-middle" style="height:32px;width:102px;">
+          <a href="index.html" class="inline-block align-middle cursor-pointer hover:opacity-80 transition-opacity duration-200" style="height:32px;width:102px;">
             <!-- Logo SVG -->
             <svg width="102" height="32" viewBox="0 0 102 32" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M47.7189 16.4292C48.0308 14.2877 47.4902 13.3521 45.9309 13.3521C44.3715 13.3521 43.5815 14.2877 43.2696 16.4292C42.9577 18.5707 43.4983 19.5063 45.0576 19.5063C46.617 19.5063 47.4279 18.5915 47.7189 16.45V16.4292Z" fill="white"/>
@@ -20,8 +20,8 @@ const appHeaderHtml = `
 <path d="M78.8644 19.4647L84.9978 13.0194L85.2265 11.3353H76.6605L76.3694 13.3521H81.4217L75.2675 19.7974L75.0388 21.4815H83.9998L84.2909 19.4647H78.8644Z" fill="white"/>
 <path d="M87.3061 12.1589L90.2096 8.64146H94.0636L91.6943 22.7617H88.7463L90.4419 12.1589H87.3061Z" fill="white"/>
 <path d="M94.2428 12.1589L97.1463 8.64146H101L98.631 22.7617H95.6829L97.3786 12.1589H94.2428Z" fill="white"/>
-</svg>
-          </span>
+            </svg>
+          </a>
         </div>
         <div class="flex items-center gap-4">
           <div class="flex items-center bg-white/10 rounded-full px-3 py-1 text-base font-semibold">
@@ -42,6 +42,9 @@ function injectAppHeader() {
   if (headerContainer) {
     headerContainer.innerHTML = appHeaderHtml;
   }
+  
+  // Add spacing class to body to account for fixed header and footer
+  document.body.classList.add('has-fixed-header-footer');
 }
 
 document.addEventListener('DOMContentLoaded', injectAppHeader); 

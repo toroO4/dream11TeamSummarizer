@@ -1,7 +1,7 @@
 // AppFooter.js - Reusable footer for cricbuzz11
 
 const appFooterHtml = `
-  <footer class="fixed bottom-0 left-0 w-full z-50" style="background: transparent;">
+  <footer class="fixed bottom-0 left-0 w-full z-50" style="background: transparent; height: 80px;">
     <div class="max-w-sm mx-auto bg-white border-t border-gray-200 rounded-t-xl overflow-hidden">
       <nav class="flex justify-around items-center py-2">
         <!-- Home (active) -->
@@ -30,6 +30,9 @@ function injectAppFooter() {
   if (footerContainer) {
     footerContainer.innerHTML = appFooterHtml;
   }
+  
+  // Add spacing class to body to account for fixed header and footer
+  document.body.classList.add('has-fixed-header-footer');
 }
 
 document.addEventListener('DOMContentLoaded', injectAppFooter); 

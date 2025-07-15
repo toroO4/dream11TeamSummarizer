@@ -9,7 +9,7 @@ class TabbedTeamAnalysisApp {
         this.selectedTeamIndex = -1;
         this.currentTeamData = null;
         this.analysisData = null;
-        this.activeTab = 'team-analysis';
+        this.activeTab = 'match-stats';
         
         // Test DOM elements immediately
         this.testDOMElements();
@@ -68,9 +68,9 @@ class TabbedTeamAnalysisApp {
 
     setupEventListeners() {
         // Tab switching
-        document.getElementById('team-analysis-tab').addEventListener('click', async () => await this.switchTab('team-analysis'));
-        document.getElementById('venue-analysis-tab').addEventListener('click', async () => await this.switchTab('venue-analysis'));
+        document.getElementById('match-stats-tab').addEventListener('click', async () => await this.switchTab('match-stats'));
         document.getElementById('team-details-tab').addEventListener('click', async () => await this.switchTab('team-details'));
+        document.getElementById('team-comparison-tab').addEventListener('click', async () => await this.switchTab('team-comparison'));
         document.getElementById('teams-summary-tab').addEventListener('click', async () => await this.switchTab('teams-summary'));
 
         // Team selector
@@ -87,7 +87,7 @@ class TabbedTeamAnalysisApp {
 
     async initializeTabs() {
         // Set initial active tab
-        await this.switchTab('team-analysis');
+        await this.switchTab('match-stats');
     }
 
     async switchTab(tabName) {
@@ -98,9 +98,9 @@ class TabbedTeamAnalysisApp {
 
         // Update tab button styles
         const tabButtons = [
-            'team-analysis-tab',
-            'venue-analysis-tab', 
+            'match-stats-tab',
             'team-details-tab',
+            'team-comparison-tab',
             'teams-summary-tab'
         ];
 
@@ -117,9 +117,9 @@ class TabbedTeamAnalysisApp {
 
         // Show/hide tab content
         const tabContents = [
-            'team-analysis-content',
-            'venue-analysis-content',
-            'team-details-content', 
+            'match-stats-content',
+            'team-details-content',
+            'team-comparison-content', 
             'teams-summary-content'
         ];
 
@@ -130,7 +130,7 @@ class TabbedTeamAnalysisApp {
                 content.classList.add('active');
                 console.log(`Made ${contentId} visible`);
                 
-                // Data will be loaded through loadTeamAnalysisData() when tab is activated
+                // Data will be loaded through loadTabData() when tab is activated
             } else {
                 content.classList.add('hidden');
                 content.classList.remove('active');
@@ -143,14 +143,14 @@ class TabbedTeamAnalysisApp {
 
     async loadTabData(tabName) {
         switch(tabName) {
-            case 'team-analysis':
-                await this.loadTeamAnalysisData();
-                break;
-            case 'venue-analysis':
-                await this.loadVenueAnalysisData();
+            case 'match-stats':
+                await this.loadMatchStatsData();
                 break;
             case 'team-details':
                 this.loadTeamDetailsData();
+                break;
+            case 'team-comparison':
+                this.loadTeamComparisonData();
                 break;
             case 'teams-summary':
                 this.loadTeamsSummaryData();
@@ -270,7 +270,7 @@ class TabbedTeamAnalysisApp {
                 </div>
             </div>
             <div class="text-center mt-3">
-                <div class="text-sm text-gray-600">Match Date: ${this.currentMatchDetails.matchDate}</div>
+                <div class="text-sm text-black-600">Match Date: ${this.currentMatchDetails.matchDate}</div>
             </div>
         `;
     }
@@ -504,74 +504,50 @@ class TabbedTeamAnalysisApp {
             teamBWins = 2;
         }
 
-        // Find the recent form container specifically within the team analysis tab
-        const teamAnalysisContent = document.getElementById('team-analysis-content');
-        const recentFormContainer = teamAnalysisContent ? teamAnalysisContent.querySelector('.bg-gray-50.rounded-lg.p-3.border.border-gray-100') : null;
-        
-        if (recentFormContainer) {
-            recentFormContainer.innerHTML = `
-                <div class="flex items-center mb-2">
-                    <span class="font-bold text-sm text-gray-900">Recent Form (Last 5 Matches)</span>
-                </div>
-                
-                <!-- Team A Row -->
-                <div class="flex items-center justify-between text-xs font-medium mb-2">
-                    <div class="flex items-center gap-2">
-                        <div class="w-5 h-5 rounded-full flex items-center justify-center overflow-hidden bg-white shadow-sm">
-                            ${teamA.image ? 
-                                `<img src="${teamA.image}" alt="${teamA.short}" class="w-full h-full object-contain p-0.5" 
-                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                 <div class="w-full h-full ${teamA.fallbackColor} flex items-center justify-center" style="display: none;">
-                                     <span class="font-bold text-xs text-white">${teamA.short}</span>
-                                 </div>` :
-                                `<div class="w-full h-full ${teamA.fallbackColor} flex items-center justify-center">
-                                     <span class="font-bold text-xs text-white">${teamA.short}</span>
-                                 </div>`
-                            }
-                        </div>
-                        <div class="font-semibold text-xs">${teamAShort}</div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <div class="font-semibold text-xs">${teamBShort}</div>
-                        <div class="w-5 h-5 rounded-full flex items-center justify-center overflow-hidden bg-white shadow-sm">
-                            ${teamB.image ? 
-                                `<img src="${teamB.image}" alt="${teamB.short}" class="w-full h-full object-contain p-0.5" 
-                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                 <div class="w-full h-full ${teamB.fallbackColor} flex items-center justify-center" style="display: none;">
-                                     <span class="font-bold text-xs text-white">${teamB.short}</span>
-                                 </div>` :
-                                `<div class="w-full h-full ${teamB.fallbackColor} flex items-center justify-center">
-                                     <span class="font-bold text-xs text-white">${teamB.short}</span>
-                                 </div>`
-                            }
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Team B Row -->
-                <div class="flex items-center justify-between text-xs font-medium">
-                    <div class="flex gap-1">
-                        ${teamAFormSquares}
-                    </div>
-                    <div class="flex gap-1">
-                        ${teamBFormSquares}
-                    </div>
-                </div>
-                
-                <!-- Win counts -->
-                <div class="flex justify-between mt-2">
-                    <div class="text-gray-600 text-xs">${teamAWins}/5 wins</div>
-                    <div class="text-gray-600 text-xs">${teamBWins}/5 wins</div>
-                </div>
-                
-                <div class="text-center mt-2">
-                    <div class="text-xs text-gray-500 italic">Most recent matches from left to right</div>
-                </div>
-            `;
-            console.log('Enhanced team form data displayed successfully');
-        } else {
-            console.error('Recent form container not found');
+        // Populate team logos and names
+        const teamALogoElement = document.getElementById('team-a-logo');
+        const teamBLogoElement = document.getElementById('team-b-logo');
+        const teamAShortElement = document.getElementById('team-a-short');
+        const teamBShortElement = document.getElementById('team-b-short');
+        const teamANameElement = document.getElementById('recent-form-team-a-name');
+        const teamBNameElement = document.getElementById('recent-form-team-b-name');
+
+        // Update team A logo
+        if (teamALogoElement && teamAShortElement) {
+            if (teamA.image) {
+                teamALogoElement.innerHTML = `<img src="${teamA.image}" alt="${teamA.short}" class="w-full h-full object-contain p-0.5" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="w-full h-full flex items-center justify-center" style="display: none;"><span class="font-bold text-xs text-gray-700">${teamA.short}</span></div>`;
+            } else {
+                teamALogoElement.className = `w-full h-full flex items-center justify-center`;
+                teamAShortElement.textContent = teamA.short;
+            }
         }
+
+        // Update team B logo
+        if (teamBLogoElement && teamBShortElement) {
+            if (teamB.image) {
+                teamBLogoElement.innerHTML = `<img src="${teamB.image}" alt="${teamB.short}" class="w-full h-full object-contain p-0.5" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="w-full h-full flex items-center justify-center" style="display: none;"><span class="font-bold text-xs text-gray-700">${teamB.short}</span></div>`;
+            } else {
+                teamBLogoElement.className = `w-full h-full flex items-center justify-center`;
+                teamBShortElement.textContent = teamB.short;
+            }
+        }
+
+        // Populate team names and form data
+        if (teamANameElement) teamANameElement.textContent = teamAShort;
+        if (teamBNameElement) teamBNameElement.textContent = teamBShort;
+
+        // Populate form squares
+        const teamASeqElement = document.getElementById('recent-form-team-a-seq');
+        const teamBSeqElement = document.getElementById('recent-form-team-b-seq');
+        const teamAWinsElement = document.getElementById('recent-form-team-a-wins');
+        const teamBWinsElement = document.getElementById('recent-form-team-b-wins');
+
+        if (teamASeqElement) teamASeqElement.innerHTML = teamAFormSquares;
+        if (teamBSeqElement) teamBSeqElement.innerHTML = teamBFormSquares;
+        if (teamAWinsElement) teamAWinsElement.textContent = `${teamAWins}/5 wins`;
+        if (teamBWinsElement) teamBWinsElement.textContent = `${teamBWins}/5 wins`;
+
+        console.log('Team form data populated successfully');
     }
     
     populateHeadToHeadData(data) {
@@ -609,43 +585,24 @@ class TabbedTeamAnalysisApp {
             teamBWinRate = Math.round((teamBWins / totalMatches) * 100);
         }
 
-        // Find the head-to-head container specifically within the team analysis tab
-        const teamAnalysisContent = document.getElementById('team-analysis-content');
-        const headToHeadContainers = teamAnalysisContent ? teamAnalysisContent.querySelectorAll('.bg-gray-50.rounded-lg.p-3.border.border-gray-100') : [];
-        const headToHeadContainer = headToHeadContainers[1]; // Second container is head-to-head
-        
-        if (headToHeadContainer) {
-            headToHeadContainer.innerHTML = `
-                <div class="flex items-center mb-2">
-                    <span class="font-bold text-sm text-gray-900">Head-to-Head Record</span>
-                </div>
-                <div class="grid grid-cols-3 gap-2 items-end text-center text-xs font-semibold mb-1">
-                    <div class="flex flex-col gap-0.5 items-center border-r border-gray-200 pr-2">
-                        <div class="text-xs text-gray-700 font-bold mb-1">${teamAShort}</div>
-                        <div class="text-lg text-primary font-bold">${teamAWins}</div>
-                        <div class="text-xs text-gray-700">Wins</div>
-                    </div>
-                    <div class="flex flex-col gap-0.5 items-center">
-                        <div class="text-xs text-gray-700 font-bold mb-1">Matches</div>
-                        <div class="text-lg text-gray-700 font-bold">${totalMatches}</div>
-                        <div class="text-xs text-gray-700">Total</div>
-                    </div>
-                    <div class="flex flex-col gap-0.5 items-center border-l border-gray-200 pl-2">
-                        <div class="text-xs text-gray-700 font-bold mb-1">${teamBShort}</div>
-                        <div class="text-lg text-primary font-bold">${teamBWins}</div>
-                        <div class="text-xs text-gray-700">Wins</div>
-                    </div>
-                </div>
-                <div class="grid grid-cols-3 gap-2 text-xs mt-1 text-center">
-                    <div class="text-green-700 text-xs">${teamAWinRate}% win rate</div>
-                    <div></div>
-                    <div class="text-orange-700 text-xs">${teamBWinRate}% win rate</div>
-                </div>
-            `;
-            console.log('Compact head-to-head data displayed successfully');
-        } else {
-            console.error('Head-to-head container not found');
-        }
+        // Populate individual elements
+        const teamAWinsElement = document.getElementById('h2h-team-a-wins');
+        const teamBWinsElement = document.getElementById('h2h-team-b-wins');
+        const teamANameElement = document.getElementById('h2h-team-a-name');
+        const teamBNameElement = document.getElementById('h2h-team-b-name');
+        const totalMatchesElement = document.getElementById('h2h-total-matches');
+        const teamARateElement = document.getElementById('h2h-team-a-rate');
+        const teamBRateElement = document.getElementById('h2h-team-b-rate');
+
+        if (teamAWinsElement) teamAWinsElement.textContent = teamAWins;
+        if (teamBWinsElement) teamBWinsElement.textContent = teamBWins;
+        if (teamANameElement) teamANameElement.textContent = teamAShort;
+        if (teamBNameElement) teamBNameElement.textContent = teamBShort;
+        if (totalMatchesElement) totalMatchesElement.textContent = totalMatches;
+        if (teamARateElement) teamARateElement.textContent = `${teamAWinRate}% win rate`;
+        if (teamBRateElement) teamBRateElement.textContent = `${teamBWinRate}% win rate`;
+
+        console.log('Head-to-head data populated successfully');
     }
 
     async fetchTeamRecentForm() {
@@ -780,6 +737,27 @@ class TabbedTeamAnalysisApp {
     loadTeamDetailsData() {
         // Team details are loaded when tab is switched
         // Data is already populated from handleTeamSelection
+    }
+
+    async loadMatchStatsData() {
+        if (!this.currentMatchDetails) return;
+
+        try {
+            // Load both team analysis and venue analysis data
+            await Promise.all([
+                this.loadTeamAnalysisData(),
+                this.loadVenueAnalysisData()
+            ]);
+        } catch (error) {
+            console.error('Error loading match stats data:', error);
+            this.components.toast.showError('Failed to load match statistics');
+        }
+    }
+
+    loadTeamComparisonData() {
+        // Team comparison data loading logic
+        console.log('Loading team comparison data...');
+        // This will be implemented when team comparison feature is ready
     }
 
     loadTeamsSummaryData() {

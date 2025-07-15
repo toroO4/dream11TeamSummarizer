@@ -200,6 +200,21 @@
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'sans-serif';
 }
 
+/* Fixed Header and Footer Spacing */
+.has-fixed-header-footer {
+    padding-top: 56px; /* Header height */
+    padding-bottom: 80px; /* Footer height */
+}
+
+.has-fixed-header-footer main {
+    min-height: calc(100vh - 136px); /* 100vh - header - footer */
+}
+
+/* Ensure content doesn't get hidden behind fixed elements */
+.has-fixed-header-footer .mobile-padding {
+    padding-bottom: 20px; /* Extra bottom padding for safety */
+}
+
 /* Tabbed Interface Styles */
 .tab-panel {
     transition: all 0.3s ease-in-out;

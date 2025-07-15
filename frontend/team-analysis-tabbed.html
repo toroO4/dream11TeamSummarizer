@@ -20,9 +20,7 @@
         <!-- Match Info Section -->
         <section class="bg-white rounded shadow-cricket border border-gray-200 p-4 sm:p-6 card-hover animate-fade-in">
             <div class="flex items-center mb-3 sm:mb-4">
-                <div class="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-primary to-secondary rounded flex items-center justify-center mr-2 sm:mr-3">
-                    <span class="text-white text-xs sm:text-sm font-bold">⚡</span>
-                </div>
+                
                 <h2 class="text-base sm:text-lg font-bold text-gray-900 font-primary">Match Details</h2>
             </div>
             
@@ -35,42 +33,70 @@
         <section class="bg-white rounded shadow-cricket border border-gray-200 p-4 sm:p-6 card-hover animate-fade-in">
             <!-- Tab Navigation -->
             <div class="flex border-b border-gray-200 mb-4">
-                <button id="team-analysis-tab" class="flex-1 py-2 px-3 text-sm font-medium border-b-2 border-primary text-primary transition-all duration-200">
-                    Team Analysis
-                </button>
-                <button id="venue-analysis-tab" class="flex-1 py-2 px-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition-all duration-200">
-                    Venue Analysis
+                <button id="match-stats-tab" class="flex-1 py-2 px-3 text-sm font-medium border-b-2 border-primary text-primary transition-all duration-200">
+                    Stats
                 </button>
                 <button id="team-details-tab" class="flex-1 py-2 px-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition-all duration-200">
-                    Team Details
+                    Players
+                </button>
+                <button id="team-comparison-tab" class="flex-1 py-2 px-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition-all duration-200">
+                    Comparison
                 </button>
                 <button id="teams-summary-tab" class="flex-1 py-2 px-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition-all duration-200">
-                    Teams Summary
+                    Summary
                 </button>
             </div>
 
             <!-- Tab Content -->
             <div id="tab-content" class="min-h-[400px]">
                 
-                <!-- Team Analysis Tab -->
-                <div id="team-analysis-content" class="tab-panel active">
+                <!-- Match Stats Tab (Combined Team Analysis + Venue Analysis) -->
+                <div id="match-stats-content" class="tab-panel active">
                     <div class="space-y-4">
                         <!-- Recent Form Section -->
                         <div class="bg-gray-50 rounded-lg p-3 border border-gray-100">
                             <div class="flex items-center mb-2">
                                 <span class="font-bold text-sm text-gray-900">Recent Form</span>
                             </div>
-                            <div class="grid grid-cols-2 gap-3 text-xs font-medium text-center">
-                                <div class="flex flex-col gap-1 items-center border-r border-gray-200 pr-3">
-                                    <div id="recent-form-team-a-name" class="font-semibold text-xs text-gray-700"></div>
-                                    <div id="recent-form-team-a-seq" class="text-blue-700 font-bold tracking-wider text-sm"></div>
-                                    <div id="recent-form-team-a-wins" class="text-gray-600 text-xs"></div>
+                            
+                            <!-- Team A Row -->
+                            <div class="flex items-center justify-between text-xs font-medium mb-2">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-5 h-5 rounded-full flex items-center justify-center overflow-hidden bg-white shadow-sm">
+                                        <div id="team-a-logo" class="w-full h-full flex items-center justify-center">
+                                            <span class="font-bold text-xs text-gray-700" id="team-a-short">MI</span>
+                                        </div>
+                                    </div>
+                                    <div class="font-semibold text-xs" id="recent-form-team-a-name">MI</div>
                                 </div>
-                                <div class="flex flex-col gap-1 items-center pl-3">
-                                    <div id="recent-form-team-b-name" class="font-semibold text-xs text-gray-700"></div>
-                                    <div id="recent-form-team-b-seq" class="text-blue-700 font-bold tracking-wider text-sm"></div>
-                                    <div id="recent-form-team-b-wins" class="text-gray-600 text-xs"></div>
+                                <div class="flex items-center gap-2">
+                                    <div class="font-semibold text-xs" id="recent-form-team-b-name">CSK</div>
+                                    <div class="w-5 h-5 rounded-full flex items-center justify-center overflow-hidden bg-white shadow-sm">
+                                        <div id="team-b-logo" class="w-full h-full flex items-center justify-center">
+                                            <span class="font-bold text-xs text-gray-700" id="team-b-short">CSK</span>
+                                        </div>
+                                    </div>
                                 </div>
+                            </div>
+                            
+                            <!-- Form Squares Row -->
+                            <div class="flex items-center justify-between text-xs font-medium">
+                                <div class="flex gap-1" id="recent-form-team-a-seq">
+                                    <!-- Team A form squares will be populated here -->
+                                </div>
+                                <div class="flex gap-1" id="recent-form-team-b-seq">
+                                    <!-- Team B form squares will be populated here -->
+                                </div>
+                            </div>
+                            
+                            <!-- Win counts -->
+                            <div class="flex justify-between mt-2">
+                                <div class="text-gray-600 text-xs" id="recent-form-team-a-wins">3/5 wins</div>
+                                <div class="text-gray-600 text-xs" id="recent-form-team-b-wins">2/5 wins</div>
+                            </div>
+                            
+                            <div class="text-center mt-2">
+                                <div class="text-xs text-gray-500 italic">Most recent matches from left to right</div>
                             </div>
                         </div>
 
@@ -99,50 +125,47 @@
                                 <div id="h2h-team-b-rate" class="text-orange-700 text-xs"></div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Venue Analysis Tab -->
-                <div id="venue-analysis-content" class="tab-panel hidden">
-                    <div class="space-y-4">
                         <!-- Venue Info -->
-                        <div class="text-center mb-4">
-                            <div id="venue-name" class="font-semibold text-sm sm:text-base text-gray-900"></div>
-                            <div id="venue-location" class="text-xs text-gray-500"></div>
-                            <div id="venue-pitch-type" class="text-xs font-bold text-gray-700 mt-1"></div>
-                        </div>
+                        <div class="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                            <div class="text-center mb-3">
+                                <div id="venue-name" class="font-semibold text-sm sm:text-base text-gray-900"></div>
+                                <div id="venue-location" class="text-xs text-gray-500"></div>
+                                <div id="venue-pitch-type" class="text-xs font-bold text-gray-700 mt-1"></div>
+                            </div>
 
-                        <!-- Venue Stats -->
-                        <div class="grid grid-cols-3 gap-3 text-center">
-                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100">
-                                <div id="venue-1st-innings" class="text-lg font-bold text-primary"></div>
-                                <div class="text-xs text-gray-600">1st Innings</div>
+                            <!-- Venue Stats -->
+                            <div class="grid grid-cols-3 gap-3 text-center">
+                                <div class="bg-white rounded-lg p-2 border border-gray-100">
+                                    <div id="venue-1st-innings" class="text-lg font-bold text-primary"></div>
+                                    <div class="text-xs text-gray-600">1st Innings</div>
+                                </div>
+                                <div class="bg-white rounded-lg p-2 border border-gray-100">
+                                    <div id="venue-2nd-innings" class="text-lg font-bold text-primary"></div>
+                                    <div class="text-xs text-gray-600">2nd Innings</div>
+                                </div>
+                                <div class="bg-white rounded-lg p-2 border border-gray-100">
+                                    <div id="venue-chase-success" class="text-lg font-bold text-primary"></div>
+                                    <div class="text-xs text-gray-600">Chase Success</div>
+                                </div>
                             </div>
-                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100">
-                                <div id="venue-2nd-innings" class="text-lg font-bold text-primary"></div>
-                                <div class="text-xs text-gray-600">2nd Innings</div>
-                            </div>
-                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100">
-                                <div id="venue-chase-success" class="text-lg font-bold text-primary"></div>
-                                <div class="text-xs text-gray-600">Chase Success</div>
-                            </div>
-                        </div>
 
-                        <!-- Team Records at Venue -->
-                        <div class="grid grid-cols-2 gap-3 text-center">
-                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100">
-                                <div id="venue-team-a-record" class="text-xs text-gray-700"></div>
+                            <!-- Team Records at Venue -->
+                            <div class="grid grid-cols-2 gap-3 text-center mt-3">
+                                <div class="bg-white rounded-lg p-2 border border-gray-100">
+                                    <div id="venue-team-a-record" class="text-xs text-gray-700"></div>
+                                </div>
+                                <div class="bg-white rounded-lg p-2 border border-gray-100">
+                                    <div id="venue-team-b-record" class="text-xs text-gray-700"></div>
+                                </div>
                             </div>
-                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100">
-                                <div id="venue-team-b-record" class="text-xs text-gray-700"></div>
-                            </div>
-                        </div>
 
-                        <!-- Toss Strategy -->
-                        <div class="bg-gray-50 rounded-lg p-3 border border-gray-100 text-center">
-                            <div class="font-semibold text-xs text-gray-700 mb-1">Toss Strategy</div>
-                            <div id="venue-toss-strategy" class="text-sm font-bold text-primary"></div>
-                            <div id="venue-toss-note" class="text-xs text-gray-500 mt-1"></div>
+                            <!-- Toss Strategy -->
+                            <div class="bg-white rounded-lg p-2 border border-gray-100 text-center mt-3">
+                                <div class="font-semibold text-xs text-gray-700 mb-1">Toss Strategy</div>
+                                <div id="venue-toss-strategy" class="text-sm font-bold text-primary"></div>
+                                <div id="venue-toss-note" class="text-xs text-gray-500 mt-1"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -192,6 +215,19 @@
                     </div>
                 </div>
 
+                <!-- Team Comparison Tab -->
+                <div id="team-comparison-content" class="tab-panel hidden">
+                    <div class="space-y-4">
+                        <!-- Team Comparison Content -->
+                        <div class="text-center py-8">
+                            <div class="text-gray-500 text-sm mb-4">Team comparison feature coming soon!</div>
+                            <button id="compare-teams-btn" class="w-full bg-secondary text-white py-3 px-4 rounded font-semibold hover:bg-secondary/90 transition-all duration-300 shadow-lg text-sm sm:text-base">
+                                📈 Compare Teams
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Teams Summary Tab -->
                 <div id="teams-summary-content" class="tab-panel hidden">
                     <div class="space-y-4">
@@ -206,10 +242,6 @@
                                 🏆 Analyze All Teams
                             </button>
                             <p class="text-xs text-gray-500 text-center font-inter">Analyzes all teams with captain/vice-captain selections</p>
-                            
-                            <button id="compare-teams-btn" class="w-full bg-secondary text-white py-3 px-4 rounded font-semibold hover:bg-secondary/90 transition-all duration-300 shadow-lg text-sm sm:text-base">
-                                📈 Compare Teams
-                            </button>
                         </div>
                     </div>
                 </div>
