@@ -163,12 +163,18 @@ class TabbedTeamAnalysisApp {
             const teamsData = sessionStorage.getItem('uploadedTeams');
             const matchData = sessionStorage.getItem('matchDetails');
 
+            console.log('Loading data from session...');
+            console.log('Teams data:', teamsData);
+            console.log('Match data:', matchData);
+
             if (teamsData) {
                 this.currentTeams = JSON.parse(teamsData);
+                console.log('Parsed teams:', this.currentTeams);
             }
 
             if (matchData) {
                 this.currentMatchDetails = JSON.parse(matchData);
+                console.log('Parsed match details:', this.currentMatchDetails);
                 this.displayMatchInfo();
             }
 

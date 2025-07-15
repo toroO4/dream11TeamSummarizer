@@ -134,3 +134,66 @@ exports.eligiblePlayers = async (req, res) => {
         res.status(500).json({ success: false, message: 'Failed to fetch eligible players', error: error.message });
     }
 }; 
+
+exports.getRecentMatches = async (req, res) => {
+    try {
+        const { limit = 20 } = req.query;
+        
+        // Get recent matches with team and venue information
+        const { data: matches, error: matchesError } = await supabase
+            .from('matches')
+            .select(`
+                match_id,
+                match_date,
+                team1_id,
+                team2_id,
+                teams!team1_id(team_name, short_name),
+                teams_team2:teams!team2_id(team_name, short_name),
+                venues(venue_name, city)
+            `)
+            .order('match_date', { ascending: false })
+            .limit(parseInt(limit));
+
+        if (matchesError) throw matchesError;
+
+        // Process matches to include team logos and format data
+        const processedMatches = matches.map(match => {
+            const team1 = match.teams;
+            const team2 = match.teams_team2;
+            
+            return {
+                match_id: match.match_id,
+                match_date: match.match_date,
+                team1: {
+                    name: team1.team_name,
+                    short_name: team1.short_name
+                },
+                team2: {
+                    name: team2.team_name,
+                    short_name: team2.short_name
+                },
+                venue: {
+                    name: match.venues?.venue_name || 'TBD',
+                    city: match.venues?.city || 'TBD'
+                },
+                is_upcoming: new Date(match.match_date) > new Date()
+            };
+        });
+
+        res.json({
+            success: true,
+            data: processedMatches,
+            count: processedMatches.length
+        });
+
+    } catch (error) {
+        console.error('Get recent matches error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch recent matches',
+            error: error.message
+        });
+    }
+};
+
+ 

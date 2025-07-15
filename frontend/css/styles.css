@@ -242,4 +242,53 @@
 .analysis-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Sticky Tab Navigation */
+.tab-navigation-container {
+    position: relative;
+    z-index: 10;
+}
+
+.tab-navigation {
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+    transition: all 0.3s ease;
+}
+
+.tab-navigation.sticky {
+    position: fixed;
+    top: 56px; /* Account for header height */
+    left: 0;
+    right: 0;
+    z-index: 50;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    animation: slideDown 0.3s ease;
+}
+
+.tab-navigation.sticky .tab-navigation-inner {
+    max-width: 24rem;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Adjust main content when tabs are sticky */
+.main-content-with-sticky-tabs {
+    padding-top: 0;
+    transition: padding-top 0.3s ease;
+}
+
+.main-content-with-sticky-tabs.has-sticky-tabs {
+    padding-top: 116px; /* Header height (56px) + tab height (60px) */
 } 
