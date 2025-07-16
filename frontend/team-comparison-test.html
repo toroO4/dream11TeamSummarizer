@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Comparison Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        warning: '#F59E0B',
+                        danger: '#EF4444'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-2xl font-bold text-gray-900 mb-6">Team Comparison Test</h1>
+        
+        <!-- Test Controls -->
+        <div class="bg-white rounded-lg p-6 mb-6 shadow-sm">
+            <h2 class="text-lg font-semibold mb-4">Test Controls</h2>
+            <div class="space-y-4">
+                <button id="test-single-team" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    Test Single Team (Should show warning)
+                </button>
+                <button id="test-multiple-teams" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                    Test Multiple Teams (Should show comparison)
+                </button>
+                <button id="test-ai-analysis" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                    Test AI Analysis
+                </button>
+                <button id="test-ui-behavior" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">
+                    Test UI Behavior (Hidden Sections)
+                </button>
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div id="test-results" class="space-y-4">
+            <!-- Results will be displayed here -->
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3000';
+
+        // Mock team data for testing
+        const mockTeams = [
+            {
+                id: 1,
+                name: "Team Alpha",
+                players: ["Virat Kohli", "Rohit Sharma", "Jasprit Bumrah", "Ravindra Jadeja", "KL Rahul", "Hardik Pandya", "Yuzvendra Chahal", "Mohammed Shami", "Rishabh Pant", "Andre Russell", "Trent Boult"],
+                captain: "Virat Kohli",
+                viceCaptain: "Jasprit Bumrah"
+            },
+            {
+                id: 2,
+                name: "Team Beta",
+                players: ["Rohit Sharma", "David Warner", "Jasprit Bumrah", "Rashid Khan", "Jos Buttler", "Ben Stokes", "Yuzvendra Chahal", "Kagiso Rabada", "Rishabh Pant", "Andre Russell", "Trent Boult"],
+                captain: "Rohit Sharma",
+                viceCaptain: "Jasprit Bumrah"
+            },
+            {
+                id: 3,
+                name: "Team Gamma",
+                players: ["Virat Kohli", "Kane Williamson", "Jasprit Bumrah", "Ravindra Jadeja", "Jos Buttler", "Hardik Pandya", "Rashid Khan", "Mohammed Shami", "Rishabh Pant", "Andre Russell", "Pat Cummins"],
+                captain: "Virat Kohli",
+                viceCaptain: "Ravindra Jadeja"
+            }
+        ];
+
+        const mockMatchDetails = {
+            teamA: "Mumbai Indians",
+            teamB: "Chennai Super Kings",
+            matchDate: "2024-04-15"
+        };
+
+        // Test functions
+        function addResult(title, content, type = 'info') {
+            const resultsDiv = document.getElementById('test-results');
+            const colorClass = type === 'error' ? 'bg-red-50 border-red-200' : 
+                              type === 'success' ? 'bg-green-50 border-green-200' : 
+                              'bg-blue-50 border-blue-200';
+            
+            resultsDiv.innerHTML += `
+                <div class="bg-white rounded-lg p-4 border ${colorClass} shadow-sm">
+                    <h3 class="font-semibold text-gray-900 mb-2">${title}</h3>
+                    <div class="text-sm text-gray-700 whitespace-pre-wrap">${content}</div>
+                </div>
+            `;
+        }
+
+        // Test single team scenario
+        document.getElementById('test-single-team').addEventListener('click', () => {
+            addResult('Single Team Test', 'Testing with 1 team - should show warning message');
+            
+            // Simulate single team scenario
+            const singleTeam = [mockTeams[0]];
+            
+            // Calculate composition
+            const team = singleTeam[0];
+            const batsmen = team.players.filter(p => 
+                !p.toLowerCase().includes('bumrah') && 
+                !p.toLowerCase().includes('chahal') && 
+                !p.toLowerCase().includes('shami') && 
+                !p.toLowerCase().includes('kumar') && 
+                !p.toLowerCase().includes('hazlewood') &&
+                !p.toLowerCase().includes('boult') &&
+                !p.toLowerCase().includes('archer')
+            ).length;
+            
+            const bowlers = team.players.filter(p => 
+                p.toLowerCase().includes('bumrah') || 
+                p.toLowerCase().includes('chahal') || 
+                p.toLowerCase().includes('shami') || 
+                p.toLowerCase().includes('kumar') || 
+                p.toLowerCase().includes('hazlewood') ||
+                p.toLowerCase().includes('boult') ||
+                p.toLowerCase().includes('archer')
+            ).length;
+            
+            const allRounders = team.players.filter(p => 
+                p.toLowerCase().includes('stokes') || 
+                p.toLowerCase().includes('jadeja') || 
+                p.toLowerCase().includes('stoinis') || 
+                p.toLowerCase().includes('pandya') ||
+                p.toLowerCase().includes('maxwell') ||
+                p.toLowerCase().includes('russell')
+            ).length;
+            
+            const wicketKeepers = team.players.filter(p => 
+                p.toLowerCase().includes('pant') || 
+                p.toLowerCase().includes('salt') || 
+                p.toLowerCase().includes('rahul') ||
+                p.toLowerCase().includes('buttler') ||
+                p.toLowerCase().includes('kishan')
+            ).length;
+
+            addResult('Team Composition', `Batsmen: ${batsmen}, Bowlers: ${bowlers}, All-Rounders: ${allRounders}, Wicket-Keepers: ${wicketKeepers}`, 'success');
+        });
+
+        // Test multiple teams scenario
+        document.getElementById('test-multiple-teams').addEventListener('click', async () => {
+            addResult('Multiple Teams Test', 'Testing with 3 teams - should show comparison table');
+            
+            try {
+                // Prepare comparison data
+                const comparisonData = {
+                    teams: mockTeams.map((team, index) => {
+                        const batsmen = team.players.filter(p => 
+                            !p.toLowerCase().includes('bumrah') && 
+                            !p.toLowerCase().includes('chahal') && 
+                            !p.toLowerCase().includes('shami') && 
+                            !p.toLowerCase().includes('kumar') && 
+                            !p.toLowerCase().includes('hazlewood') &&
+                            !p.toLowerCase().includes('boult') &&
+                            !p.toLowerCase().includes('archer')
+                        ).length;
+                        
+                        const bowlers = team.players.filter(p => 
+                            p.toLowerCase().includes('bumrah') || 
+                            p.toLowerCase().includes('chahal') || 
+                            p.toLowerCase().includes('shami') || 
+                            p.toLowerCase().includes('kumar') || 
+                            p.toLowerCase().includes('hazlewood') ||
+                            p.toLowerCase().includes('boult') ||
+                            p.toLowerCase().includes('archer')
+                        ).length;
+                        
+                        const allRounders = team.players.filter(p => 
+                            p.toLowerCase().includes('stokes') || 
+                            p.toLowerCase().includes('jadeja') || 
+                            p.toLowerCase().includes('stoinis') || 
+                            p.toLowerCase().includes('pandya') ||
+                            p.toLowerCase().includes('maxwell') ||
+                            p.toLowerCase().includes('russell')
+                        ).length;
+                        
+                        const wicketKeepers = team.players.filter(p => 
+                            p.toLowerCase().includes('pant') || 
+                            p.toLowerCase().includes('salt') || 
+                            p.toLowerCase().includes('rahul') ||
+                            p.toLowerCase().includes('buttler') ||
+                            p.toLowerCase().includes('kishan')
+                        ).length;
+
+                        // Calculate balance score
+                        let balanceScore = 5;
+                        if (batsmen >= 4 && batsmen <= 5) balanceScore += 2;
+                        else if (batsmen >= 3 && batsmen <= 6) balanceScore += 1;
+                        else balanceScore -= 1;
+                        
+                        if (bowlers >= 3 && bowlers <= 4) balanceScore += 2;
+                        else if (bowlers >= 2 && bowlers <= 5) balanceScore += 1;
+                        else balanceScore -= 1;
+                        
+                        if (allRounders >= 1 && allRounders <= 2) balanceScore += 1;
+                        else if (allRounders === 0 || allRounders === 3) balanceScore += 0.5;
+                        else balanceScore -= 0.5;
+                        
+                        if (wicketKeepers === 1) balanceScore += 1;
+                        else if (wicketKeepers === 0) balanceScore -= 1;
+                        else balanceScore -= 0.5;
+
+                        const overallRating = Math.max(1, Math.min(10, Math.round(balanceScore + (team.captain && team.viceCaptain ? 1 : -2))));
+
+                        return {
+                            id: team.id,
+                            name: team.name,
+                            players: team.players,
+                            captain: team.captain,
+                            viceCaptain: team.viceCaptain,
+                            composition: { batsmen, bowlers, allRounders, wicketKeepers },
+                            balanceScore: Math.max(1, Math.min(10, Math.round(balanceScore))),
+                            overallRating
+                        };
+                    }),
+                    matchDetails: mockMatchDetails
+                };
+
+                addResult('Comparison Data Generated', JSON.stringify(comparisonData, null, 2), 'success');
+
+                // Find best team
+                const bestTeam = comparisonData.teams.reduce((best, current) => 
+                    current.overallRating > best.overallRating ? current : best
+                );
+
+                addResult('Best Team Recommendation', `🏆 ${bestTeam.name} (Rating: ${bestTeam.overallRating}/10)`, 'success');
+
+            } catch (error) {
+                addResult('Error', error.message, 'error');
+            }
+        });
+
+        // Test AI analysis
+        document.getElementById('test-ai-analysis').addEventListener('click', async () => {
+            addResult('AI Analysis Test', 'Testing AI analysis endpoint');
+            
+            try {
+                const analysisData = {
+                    teams: mockTeams.map(team => ({
+                        name: team.name,
+                        players: team.players.join(', '),
+                        captain: team.captain,
+                        viceCaptain: team.viceCaptain
+                    })),
+                    teamA: mockMatchDetails.teamA,
+                    teamB: mockMatchDetails.teamB,
+                    matchDate: mockMatchDetails.matchDate
+                };
+
+                const response = await fetch(`${API_BASE_URL}/analyze-multiple`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(analysisData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    addResult('AI Analysis Success', result.analysis, 'success');
+                } else {
+                    addResult('AI Analysis Failed', result.message, 'error');
+                }
+
+            } catch (error) {
+                addResult('AI Analysis Error', error.message, 'error');
+            }
+        });
+
+        // Test UI behavior
+        document.getElementById('test-ui-behavior').addEventListener('click', () => {
+            addResult('UI Behavior Test', `
+✅ Expected Behavior:
+1. Initially: Only "Compare Teams & Get Recommendations" button is visible
+2. Team Comparison Metrics section is hidden
+3. Team Composition Analysis section is hidden  
+4. Player Overlap Analysis section is hidden
+5. AI-Powered Analysis section is hidden
+6. Expert Recommendation section is hidden
+
+✅ After clicking "Compare Teams":
+1. All sections become visible
+2. Comparison table is populated
+3. Composition charts are displayed
+4. Player overlap analysis is shown
+5. AI analysis is performed
+6. Recommendation is displayed
+
+✅ Single Team Scenario:
+1. Warning message is shown
+2. All comparison sections remain hidden
+3. User is prompted to upload more teams
+
+This ensures a clean, progressive disclosure UI where users only see relevant information when they need it.
+            `, 'success');
+        });
+    </script>
+</body>
+</html> 
