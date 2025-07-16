@@ -1,12 +1,12 @@
 // Enhanced Cricket Analyzer App - Unified Single & Multiple Team Analysis
 class EnhancedCricketAnalyzerApp {
     constructor() {
+        console.log('EnhancedCricketAnalyzerApp constructor called');
+        
         this.components = {};
         this.currentTeams = [];
         this.currentMatchDetails = null;
-        this.selectedTeamIndex = -1;
-        this.currentTeamData = null;
-        this.analysisMode = 'single'; // 'single' or 'multiple'
+        this.analysisMode = 'single';
         this.matches = [];
         this.selectedMatch = null;
         this.allMatches = []; // Store all matches for filtering
@@ -19,6 +19,11 @@ class EnhancedCricketAnalyzerApp {
         this.initializeComponents();
         this.setupEventListeners();
         this.loadMatches();
+        
+        // Make test function available
+        EnhancedCricketAnalyzerApp.makeTestAvailable();
+        
+        console.log('EnhancedCricketAnalyzerApp initialized successfully');
     }
 
     initializeComponents() {
@@ -660,69 +665,123 @@ class EnhancedCricketAnalyzerApp {
 
     async handleScreenshotsUpload(e) {
         const files = Array.from(e.target.files);
-        
         if (files.length === 0) return;
 
         // Validate files
-        if (files.length > 10) {
-            this.components.toast.showError('Maximum 10 screenshots allowed');
-            return;
-        }
-
         const validFiles = files.filter(file => {
-            if (file.size > 5 * 1024 * 1024) {
-                this.components.toast.showError(`${file.name} is too large (max 5MB)`);
+            const isValidType = ['image/jpeg', 'image/jpg', 'image/png'].includes(file.type);
+            const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB
+            
+            if (!isValidType) {
+                this.components.toast.showError(`${file.name}: Invalid file type. Please upload JPG or PNG images only.`);
                 return false;
             }
-            if (!file.type.startsWith('image/')) {
-                this.components.toast.showError(`${file.name} is not an image file`);
+            
+            if (!isValidSize) {
+                this.components.toast.showError(`${file.name}: File too large. Maximum size is 5MB.`);
                 return false;
             }
+            
             return true;
         });
 
-        if (validFiles.length === 0) return;
+        if (validFiles.length === 0) {
+            this.components.toast.showError('No valid files selected. Please upload JPG or PNG images under 5MB each.');
+            return;
+        }
 
-        // Show preview
-        this.showScreenshotsPreview(validFiles);
-
-        // Process screenshots
-        this.showScreenshotsLoading(true);
+        if (validFiles.length > 10) {
+            this.components.toast.showError('Too many files. Please upload a maximum of 10 screenshots.');
+            return;
+        }
         
         try {
+            this.showScreenshotsLoading(true);
+            
             const teams = [];
+            const errors = [];
             
             for (let i = 0; i < validFiles.length; i++) {
                 const file = validFiles[i];
-                const formData = new FormData();
-                formData.append('image', file);
+                try {
+                    console.log(`Processing file ${i + 1}/${validFiles.length}:`, file.name);
+                    
+                    const formData = new FormData();
+                    formData.append('image', file);
 
-                const response = await fetch(`${CONSTANTS.API_BASE_URL}/ocr/process`, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const result = await response.json();
-                
-                if (result.success) {
-                    teams.push({
-                        name: `Team ${i + 1}`,
-                        players: result.data.players,
-                        captain: result.data.captain || '',
-                        viceCaptain: result.data.vice_captain || '',
-                        source: 'screenshot',
-                        fileName: file.name
+                    const response = await fetch(`${CONSTANTS.API_BASE_URL}/ocr/process`, {
+                        method: 'POST',
+                        body: formData
                     });
-                } else {
-                    this.components.toast.showError(`Failed to process ${file.name}: ${result.message}`);
+
+                    console.log(`OCR response for ${file.name}:`, response.status);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const result = await response.json();
+                    console.log(`OCR result for ${file.name}:`, result);
+                    
+                    if (result.success) {
+                        teams.push({
+                            name: `Team ${i + 1}`,
+                            players: result.data.players,
+                            captain: result.data.captain || '',
+                            viceCaptain: result.data.vice_captain || '',
+                            source: 'screenshot',
+                            fileName: file.name
+                        });
+                        console.log(`Successfully processed ${file.name}: ${result.data.players.length} players`);
+                    } else {
+                        const errorMsg = result.message || 'Failed to extract team data';
+                        const suggestion = result.suggestion || 'Please try again with a clear Dream11 screenshot.';
+                        errors.push({
+                            file: file.name,
+                            error: `${errorMsg}. ${suggestion}`
+                        });
+                        console.error(`Failed to process ${file.name}:`, errorMsg);
+                    }
+                } catch (error) {
+                    console.error(`Error processing ${file.name}:`, error);
+                    let errorMessage = 'Processing failed';
+                    
+                    if (error.message.includes('Failed to fetch')) {
+                        errorMessage = 'Unable to connect to server. Check your internet connection.';
+                    } else if (error.message.includes('HTTP 400')) {
+                        errorMessage = 'Invalid image format. Please upload a clear Dream11 screenshot.';
+                    } else if (error.message.includes('HTTP 500')) {
+                        errorMessage = 'Server error. Please try again later.';
+                    } else if (error.message.includes('OCR API key')) {
+                        errorMessage = 'OCR service not configured. Please contact support.';
+                    }
+                    
+                    errors.push({
+                        file: file.name,
+                        error: errorMessage
+                    });
                 }
             }
 
+            // Show results
             if (teams.length > 0) {
                 this.currentTeams = teams;
                 this.analysisMode = 'multiple';
                 this.displayTeamsSummary();
-                this.components.toast.showSuccess(`Successfully processed ${teams.length} team(s)`);
+                
+                const successMsg = `Successfully processed ${teams.length} team(s)`;
+                if (errors.length > 0) {
+                    this.components.toast.showWarning(`${successMsg}. ${errors.length} file(s) failed.`);
+                } else {
+                    this.components.toast.showSuccess(successMsg);
+                }
+            } else {
+                this.components.toast.showError('No teams could be processed. Please check your screenshots and try again.');
+            }
+
+            // Log any errors for debugging
+            if (errors.length > 0) {
+                console.error('Processing errors:', errors);
             }
 
         } catch (error) {
@@ -951,9 +1010,30 @@ Team 2,Mohammed Shami,Bowler,No,No`;
             fallbackColor: 'bg-gray-500' 
         };
     }
+
+    // Test function to verify toast functionality
+    testToast() {
+        console.log('Testing toast functionality...');
+        this.components.toast.showSuccess('✅ Toast test successful! This is a success message.');
+        setTimeout(() => {
+            this.components.toast.showError('❌ Toast test successful! This is an error message.');
+        }, 2000);
+    }
+
+    // Make test function available globally for debugging
+    static makeTestAvailable() {
+        window.testToast = function() {
+            if (window.enhancedApp) {
+                window.enhancedApp.testToast();
+            } else {
+                alert('Enhanced app not initialized');
+            }
+        };
+        console.log('Toast test function available. Run testToast() in console to test.');
+    }
 }
 
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new EnhancedCricketAnalyzerApp();
+    window.enhancedApp = new EnhancedCricketAnalyzerApp();
 }); 

@@ -83,6 +83,12 @@ class TabbedTeamAnalysisApp {
         // Analysis buttons
         document.getElementById('analyze-all-btn').addEventListener('click', () => this.analyzeAllTeams());
         document.getElementById('compare-teams-btn').addEventListener('click', () => this.compareTeams());
+
+        // Player validation button
+        const validatePlayersBtn = document.getElementById('validate-players-btn');
+        if (validatePlayersBtn) {
+            validatePlayersBtn.addEventListener('click', () => this.displayTeamDetails());
+        }
     }
 
     async initializeTabs() {
@@ -307,21 +313,401 @@ class TabbedTeamAnalysisApp {
         }
     }
 
-    displayTeamDetails() {
+    async displayTeamDetails() {
         const teamDetails = document.getElementById('team-details');
         const playersList = document.getElementById('players-list');
+        const overrideSection = document.getElementById('player-override-section');
         
         if (!this.currentTeamData) return;
 
-        // Display players
-        playersList.innerHTML = this.currentTeamData.players.map((player, index) => `
-            <div class="flex items-center justify-between p-2 bg-white rounded border border-gray-200">
-                <span class="text-sm font-medium text-gray-900">${index + 1}. ${player}</span>
-                <span class="text-xs text-gray-500">Player</span>
+        // Show loading state
+        playersList.innerHTML = `
+            <div class="flex items-center justify-center py-4">
+                <div class="w-4 h-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin mr-2"></div>
+                <span class="text-xs text-gray-600">Validating players...</span>
             </div>
-        `).join('');
+        `;
+
+        try {
+            // Validate players against database
+            const validationResults = await this.validatePlayers(this.currentTeamData.players);
+            
+            // Store validation results
+            this.currentTeamData.validationResults = validationResults;
+            
+            // Display players with validation status
+            playersList.innerHTML = '';
+            let hasInvalidPlayers = false;
+            
+            validationResults.forEach((result, index) => {
+                const playerDiv = document.createElement('div');
+                playerDiv.className = 'flex items-center justify-between p-3 rounded border transition-all duration-200';
+                
+                if (result.isValid) {
+                    // Valid player (including auto-corrected)
+                    const isAutoReplaced = result.autoReplaced;
+                    const bgColor = isAutoReplaced ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200';
+                    const iconColor = isAutoReplaced ? 'text-blue-600' : 'text-green-600';
+                    const icon = isAutoReplaced ? '🔄' : '✅';
+                    const statusText = isAutoReplaced ? `${Math.round(result.confidence * 100)}% match` : 'Validated';
+                    
+                    playerDiv.className += ` ${bgColor}`;
+                    playerDiv.innerHTML = `
+                        <div class="flex items-center">
+                            <span class="${iconColor} mr-2">${icon}</span>
+                            <div>
+                                <span class="font-medium text-gray-900">${result.validatedName}</span>
+                                <div class="text-xs text-gray-500">${result.role || 'Unknown'} • ${result.team || 'Unknown'}</div>
+                                ${isAutoReplaced ? `<div class="text-xs ${iconColor} italic">Auto-corrected from "${result.inputName}"</div>` : ''}
+                            </div>
+                        </div>
+                        <div class="text-xs ${iconColor} font-medium">${statusText}</div>
+                    `;
+                } else {
+                    // Invalid player - needs override
+                    hasInvalidPlayers = true;
+                    playerDiv.className += ' bg-red-50 border-red-200';
+                    playerDiv.innerHTML = `
+                        <div class="flex items-center">
+                            <span class="text-red-600 mr-2">❌</span>
+                            <div>
+                                <span class="font-medium text-gray-900">${result.inputName}</span>
+                                <div class="text-xs text-red-600">Not found in database</div>
+                            </div>
+                        </div>
+                        <button onclick="window.tabbedApp.showPlayerOverrideModal('${result.inputName}', ${index})" 
+                                class="text-xs text-red-600 hover:text-red-800 underline bg-white px-2 py-1 rounded border">
+                            🔍 Override
+                        </button>
+                    `;
+                }
+                
+                playersList.appendChild(playerDiv);
+            });
+
+            // Show override section if there are invalid players
+            if (hasInvalidPlayers) {
+                overrideSection.classList.remove('hidden');
+            } else {
+                overrideSection.classList.add('hidden');
+            }
+
+            // Update team data with validation results
+            this.updateTeamData();
+
+        } catch (error) {
+            console.error('Player validation error:', error);
+            playersList.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="text-red-600 text-sm mb-2">Failed to validate players</div>
+                    <button onclick="window.tabbedApp.displayTeamDetails()" class="text-xs text-primary hover:underline">
+                        Try again
+                    </button>
+                </div>
+            `;
+        }
 
         teamDetails.classList.remove('hidden');
+    }
+
+    async validatePlayers(players) {
+        if (!this.currentMatchDetails) {
+            this.components.toast.showError('Please validate match details first');
+            return players.map(player => ({
+                inputName: player,
+                isValid: false,
+                validatedName: player,
+                suggestions: []
+            }));
+        }
+
+        try {
+            const response = await fetch(`${CONSTANTS.API_BASE_URL}/validate-players`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    players: players,
+                    teamA: this.currentMatchDetails.teamA,
+                    teamB: this.currentMatchDetails.teamB
+                })
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                return result.validationResults;
+            } else {
+                this.components.toast.showError(result.message || 'Validation failed');
+                return players.map(player => ({
+                    inputName: player,
+                    isValid: false,
+                    validatedName: player,
+                    suggestions: []
+                }));
+            }
+        } catch (error) {
+            console.error('Validation error:', error);
+            this.components.toast.showError('Failed to validate players');
+            return players.map(player => ({
+                inputName: player,
+                isValid: false,
+                validatedName: player,
+                suggestions: []
+            }));
+        }
+    }
+
+    showPlayerOverrideModal(playerName, playerIndex) {
+        // Create modal if it doesn't exist
+        let modal = document.getElementById('player-override-modal');
+        if (!modal) {
+            modal = this.createPlayerOverrideModal();
+        }
+
+        // Find the player's validation result
+        const playerResult = this.currentTeamData.validationResults.find(r => r.inputName === playerName);
+        if (!playerResult) {
+            this.components.toast.showError('Player not found');
+            return;
+        }
+
+        // Populate modal content
+        const content = document.getElementById('override-modal-content');
+        let suggestionsHtml = '';
+
+        // Add database suggestions with similarity scores
+        if (playerResult.suggestions && playerResult.suggestions.length > 0) {
+            playerResult.suggestions.forEach(suggestion => {
+                const similarityPercent = Math.round(suggestion.similarity * 100);
+                const bgColor = similarityPercent >= 80 ? 'bg-green-50 border-green-200' : 
+                               similarityPercent >= 60 ? 'bg-yellow-50 border-yellow-200' : 
+                               'bg-gray-50 border-gray-200';
+                
+                suggestionsHtml += `
+                    <label class="flex items-center p-2 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors ${bgColor} override-suggestion" data-player="${suggestion.playerName}" data-player-id="${suggestion.playerId}" data-role="${suggestion.role}" data-team="${suggestion.team}">
+                        <input type="radio" name="override-player" value="${suggestion.playerName}" class="mr-2" tabindex="-1">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-medium text-sm text-gray-800 truncate">${suggestion.playerName}</div>
+                            <div class="text-xs text-gray-500">${suggestion.role} • ${suggestion.team}</div>
+                        </div>
+                        <div class="text-xs font-medium ${similarityPercent >= 80 ? 'text-green-600' : similarityPercent >= 60 ? 'text-yellow-600' : 'text-gray-500'} ml-2">${similarityPercent}%</div>
+                    </label>
+                `;
+            });
+        }
+
+        // Add option to keep original
+        suggestionsHtml += `
+            <label class="flex items-center p-2 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors bg-gray-50 override-suggestion" data-player="${playerName}">
+                <input type="radio" name="override-player" value="${playerName}" class="mr-2" tabindex="-1">
+                <div class="flex-1 min-w-0">
+                    <div class="font-medium text-sm text-gray-800 truncate">${playerName}</div>
+                    <div class="text-xs text-gray-500">Keep Original (Not in Database)</div>
+                </div>
+                <div class="text-xs font-medium text-gray-400 ml-2">0%</div>
+            </label>
+        `;
+
+        content.innerHTML = `
+            <div class="mb-4">
+                <h4 class="font-semibold text-gray-800 mb-2">Input Player: ${playerName}</h4>
+                <p class="text-sm text-gray-600 mb-4">Select the correct player from the database:</p>
+                <div class="space-y-3 max-h-[50vh] overflow-y-auto pr-2">${suggestionsHtml}</div>
+            </div>
+        `;
+
+        // Store current override context
+        this.currentOverridePlayer = playerName;
+        this.currentOverrideIndex = playerIndex;
+
+        // Add event listeners
+        setTimeout(() => {
+            const suggestionLabels = content.querySelectorAll('.override-suggestion');
+            suggestionLabels.forEach(label => {
+                label.addEventListener('click', (e) => {
+                    const player = label.getAttribute('data-player');
+                    const playerId = label.getAttribute('data-player-id');
+                    const role = label.getAttribute('data-role');
+                    const team = label.getAttribute('data-team');
+                    this.handlePlayerOverride(player, playerId, role, team);
+                });
+            });
+        }, 50);
+
+        // Show modal
+        modal.classList.remove('hidden');
+
+        // ESC key closes modal
+        this._escListener = (e) => {
+            if (e.key === 'Escape') {
+                this.closePlayerOverrideModal();
+            }
+        };
+        document.addEventListener('keydown', this._escListener);
+
+        // Click outside closes modal
+        modal.addEventListener('mousedown', this._outsideClickListener = (e) => {
+            if (e.target === modal) {
+                this.closePlayerOverrideModal();
+            }
+        });
+    }
+
+    createPlayerOverrideModal() {
+        const modal = document.createElement('div');
+        modal.id = 'player-override-modal';
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden';
+        modal.innerHTML = `
+            <div class="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-hidden">
+                <div class="bg-primary text-white p-4 rounded-t-lg">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-semibold text-lg">Player Override</h3>
+                        <button onclick="window.tabbedApp.closePlayerOverrideModal()" class="text-white hover:text-gray-200">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-4 flex-1 overflow-hidden">
+                    <div id="override-modal-content" class="h-full overflow-y-auto"></div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 rounded-b-lg flex justify-end space-x-2">
+                    <button onclick="window.tabbedApp.closePlayerOverrideModal()" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">
+                        Cancel
+                    </button>
+                    <button onclick="window.tabbedApp.savePlayerOverride()" class="px-4 py-2 text-sm bg-primary text-white rounded hover:bg-primary/90">
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        return modal;
+    }
+
+    handlePlayerOverride(playerName, playerId, role, team) {
+        // Update the player in the current team data
+        if (this.currentOverrideIndex !== undefined) {
+            this.currentTeamData.players[this.currentOverrideIndex] = playerName;
+        }
+
+        // Update validation results
+        const validationResult = this.currentTeamData.validationResults.find(r => r.inputName === this.currentOverridePlayer);
+        if (validationResult) {
+            validationResult.inputName = playerName;
+            validationResult.validatedName = playerName;
+            validationResult.isValid = true;
+            validationResult.playerId = playerId;
+            validationResult.role = role;
+            validationResult.team = team;
+            validationResult.confidence = 1.0;
+            validationResult.autoReplaced = false;
+        }
+
+        // Update captain/vice-captain if they were the overridden player
+        if (this.currentTeamData.captain === this.currentOverridePlayer) {
+            this.currentTeamData.captain = playerName;
+        }
+        if (this.currentTeamData.viceCaptain === this.currentOverridePlayer) {
+            this.currentTeamData.viceCaptain = playerName;
+        }
+
+        // Update the teams array and sessionStorage
+        this.updateTeamData();
+
+        // Close modal and refresh display
+        this.closePlayerOverrideModal();
+        this.displayTeamDetails();
+        this.populateCaptainSelectors();
+        
+        // Show success toast instead of alert
+        this.components.toast.showSuccess(`Player updated to: ${playerName}`);
+    }
+
+    savePlayerOverride() {
+        const selectedValue = document.querySelector('input[name="override-player"]:checked');
+        
+        if (!selectedValue) {
+            this.components.toast.showError('Please select a player');
+            return;
+        }
+
+        const newPlayerName = selectedValue.value;
+        
+        // Find the suggestion data if it's a database player
+        const playerResult = this.currentTeamData.validationResults.find(r => r.inputName === this.currentOverridePlayer);
+        let selectedSuggestion = null;
+        
+        if (playerResult && playerResult.suggestions) {
+            selectedSuggestion = playerResult.suggestions.find(s => s.playerName === newPlayerName);
+        }
+        
+        // Update the player in the current team data
+        if (this.currentOverrideIndex !== undefined) {
+            this.currentTeamData.players[this.currentOverrideIndex] = newPlayerName;
+        }
+
+        // Update validation results
+        const validationResult = this.currentTeamData.validationResults.find(r => r.inputName === this.currentOverridePlayer);
+        if (validationResult) {
+            validationResult.inputName = newPlayerName;
+            validationResult.validatedName = newPlayerName;
+            validationResult.isValid = true;
+            
+            // Update with suggestion data if available
+            if (selectedSuggestion) {
+                validationResult.playerId = selectedSuggestion.playerId;
+                validationResult.role = selectedSuggestion.role;
+                validationResult.team = selectedSuggestion.team;
+                validationResult.confidence = selectedSuggestion.similarity;
+            }
+        }
+
+        // Update captain/vice-captain if they were the overridden player
+        if (this.currentTeamData.captain === this.currentOverridePlayer) {
+            this.currentTeamData.captain = newPlayerName;
+        }
+        if (this.currentTeamData.viceCaptain === this.currentOverridePlayer) {
+            this.currentTeamData.viceCaptain = newPlayerName;
+        }
+
+        // Update the teams array and sessionStorage
+        this.updateTeamData();
+
+        // Close modal and refresh display
+        this.closePlayerOverrideModal();
+        this.displayTeamDetails();
+        this.populateCaptainSelectors();
+        
+        // Show success toast instead of alert
+        this.components.toast.showSuccess(`Player updated to: ${newPlayerName}`);
+    }
+
+    closePlayerOverrideModal() {
+        const modal = document.getElementById('player-override-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+
+        // Remove event listeners
+        if (this._escListener) {
+            document.removeEventListener('keydown', this._escListener);
+            this._escListener = null;
+        }
+        if (this._outsideClickListener) {
+            const modal = document.getElementById('player-override-modal');
+            if (modal) {
+                modal.removeEventListener('mousedown', this._outsideClickListener);
+                this._outsideClickListener = null;
+            }
+        }
+
+        // Clear override context
+        this.currentOverridePlayer = null;
+        this.currentOverrideIndex = undefined;
     }
 
     hideTeamDetails() {
@@ -339,16 +725,25 @@ class TabbedTeamAnalysisApp {
         captainSelect.innerHTML = '<option value="">Select Captain</option>';
         viceCaptainSelect.innerHTML = '<option value="">Select Vice-Captain</option>';
 
-        // Add player options
-        this.currentTeamData.players.forEach(player => {
+        // Get validated players (use validation results if available, otherwise use original players)
+        const validatedPlayers = this.currentTeamData.validationResults || 
+            this.currentTeamData.players.map(player => ({ validatedName: player, role: 'Unknown', team: 'Unknown' }));
+
+        // Add player options with role and team information
+        validatedPlayers.forEach(player => {
+            const playerName = player.validatedName || player;
+            const role = player.role || 'Unknown';
+            const team = player.team || 'Unknown';
+            const displayText = `${playerName} (${role} • ${team})`;
+
             const captainOption = document.createElement('option');
-            captainOption.value = player;
-            captainOption.textContent = player;
+            captainOption.value = playerName;
+            captainOption.textContent = displayText;
             captainSelect.appendChild(captainOption);
 
             const viceCaptainOption = document.createElement('option');
-            viceCaptainOption.value = player;
-            viceCaptainOption.textContent = player;
+            viceCaptainOption.value = playerName;
+            viceCaptainOption.textContent = displayText;
             viceCaptainSelect.appendChild(viceCaptainOption);
         });
 
@@ -975,5 +1370,5 @@ class TabbedTeamAnalysisApp {
 
 // Initialize the tabbed app when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    new TabbedTeamAnalysisApp();
+    window.tabbedApp = new TabbedTeamAnalysisApp();
 }); 

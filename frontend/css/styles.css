@@ -19,6 +19,38 @@
     to { opacity: 1; transform: scale(1); }
 }
 
+/* Toast Notification Styles */
+#error-toast,
+#success-toast {
+    position: fixed !important;
+    bottom: 1rem !important;
+    left: 1rem !important;
+    right: 1rem !important;
+    max-width: 24rem !important;
+    margin: 0 auto !important;
+    z-index: 9999 !important;
+    transform: translateY(100%) !important;
+    transition: transform 0.3s ease-in-out !important;
+    border-radius: 0.5rem !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+}
+
+#error-toast.translate-y-full,
+#success-toast.translate-y-full {
+    transform: translateY(100%) !important;
+}
+
+#error-toast:not(.translate-y-full),
+#success-toast:not(.translate-y-full) {
+    transform: translateY(0) !important;
+}
+
+/* Ensure toast content is visible */
+#error-toast *,
+#success-toast * {
+    color: inherit !important;
+}
+
 /* Cricket Pattern Background */
 .cricket-pattern {
     background-image: 

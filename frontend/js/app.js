@@ -1,6 +1,8 @@
 // Main Application Class for Single Team Analysis
 class CricketAnalyzerApp {
     constructor() {
+        console.log('CricketAnalyzerApp constructor called');
+        
         this.components = {};
         this.currentFile = null;
         this.extractedTeamData = null;
@@ -9,6 +11,11 @@ class CricketAnalyzerApp {
         // Initialize components
         this.initializeComponents();
         this.setupEventListeners();
+        
+        // Make test function available
+        CricketAnalyzerApp.makeTestAvailable();
+        
+        console.log('CricketAnalyzerApp initialized successfully');
     }
 
     initializeComponents() {
@@ -100,6 +107,7 @@ class CricketAnalyzerApp {
         sessionStorage.removeItem('playerValidationResults');
         sessionStorage.removeItem('selectedCaptain');
         sessionStorage.removeItem('selectedViceCaptain');
+        
         // Check if match is validated first
         if (!this.components.matchValidation.isMatchValidated()) {
             this.components.toast.showError('Please validate the match details (teams and date) before uploading a screenshot. If the date or teams do not match, please correct them and validate again.');
@@ -112,12 +120,22 @@ class CricketAnalyzerApp {
             const formData = new FormData();
             formData.append('image', file);
 
+            console.log('Uploading file:', file.name, 'Size:', file.size, 'Type:', file.type);
+
             const response = await fetch(`${CONSTANTS.API_BASE_URL}/ocr/process`, {
                 method: 'POST',
                 body: formData
             });
 
+            console.log('OCR response status:', response.status);
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
             const result = await response.json();
+            console.log('OCR result:', result);
+            
             this.components.fileUpload.showLoading(false);
 
             if (result.success) {
@@ -136,13 +154,28 @@ class CricketAnalyzerApp {
                     this.navigateToAnalysis();
                 }, 1500);
             } else {
-                this.components.toast.showError(result.message || 'Failed to process image');
+                const errorMessage = result.message || 'Failed to process image';
+                const suggestion = result.suggestion || 'Please try again with a clear Dream11 screenshot.';
+                this.components.toast.showError(`${errorMessage}. ${suggestion}`);
             }
 
         } catch (error) {
             console.error('Image processing error:', error);
             this.components.fileUpload.showLoading(false);
-            this.components.toast.showError('Failed to process image. Please try again.');
+            
+            let errorMessage = 'Failed to process image. Please try again.';
+            
+            if (error.message.includes('Failed to fetch')) {
+                errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+            } else if (error.message.includes('HTTP 400')) {
+                errorMessage = 'Invalid image format. Please upload a clear Dream11 screenshot.';
+            } else if (error.message.includes('HTTP 500')) {
+                errorMessage = 'Server error occurred. Please try again later.';
+            } else if (error.message.includes('OCR API key')) {
+                errorMessage = 'OCR service not configured. Please contact support.';
+            }
+            
+            this.components.toast.showError(errorMessage);
         }
     }
 
@@ -223,6 +256,27 @@ class CricketAnalyzerApp {
 
     navigateToAnalysis() {
         window.location.href = 'team-analysis.html';
+    }
+
+    // Test function to verify toast functionality
+    testToast() {
+        console.log('Testing toast functionality...');
+        this.components.toast.showSuccess('✅ Toast test successful! This is a success message.');
+        setTimeout(() => {
+            this.components.toast.showError('❌ Toast test successful! This is an error message.');
+        }, 2000);
+    }
+
+    // Make test function available globally for debugging
+    static makeTestAvailable() {
+        window.testToast = function() {
+            if (window.cricketAnalyzerApp) {
+                window.cricketAnalyzerApp.testToast();
+            } else {
+                alert('Cricket app not initialized');
+            }
+        };
+        console.log('Toast test function available. Run testToast() in console to test.');
     }
 }
 
