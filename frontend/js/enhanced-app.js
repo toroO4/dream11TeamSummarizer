@@ -9,6 +9,11 @@ class EnhancedCricketAnalyzerApp {
         this.analysisMode = 'single'; // 'single' or 'multiple'
         this.matches = [];
         this.selectedMatch = null;
+        this.allMatches = []; // Store all matches for filtering
+        this.activeFilters = {
+            search: null,
+            date: null
+        };
         
         // Initialize components
         this.initializeComponents();
@@ -63,6 +68,9 @@ class EnhancedCricketAnalyzerApp {
             changeMatchBtn.addEventListener('click', () => this.showMatchSelection());
         }
 
+        // Search and Filter Event Listeners
+        this.setupSearchAndFilterListeners();
+
         // Tab switching
         const screenshotTab = document.getElementById('screenshot-tab');
         const csvTab = document.getElementById('csv-tab');
@@ -96,6 +104,72 @@ class EnhancedCricketAnalyzerApp {
         }
     }
 
+    setupSearchAndFilterListeners() {
+        // Search input click
+        const searchInput = document.getElementById('match-search');
+        if (searchInput) {
+            searchInput.addEventListener('click', () => this.toggleSearchDropdown());
+            searchInput.addEventListener('focus', () => this.toggleSearchDropdown());
+        }
+
+        // Search button click
+        const searchBtn = document.getElementById('search-btn');
+        if (searchBtn) {
+            searchBtn.addEventListener('click', () => this.toggleSearchDropdown());
+        }
+
+        // Date filter button click
+        const dateFilterBtn = document.getElementById('date-filter-btn');
+        if (dateFilterBtn) {
+            dateFilterBtn.addEventListener('click', () => this.toggleDatePicker());
+        }
+
+        // Apply search
+        const applySearchBtn = document.getElementById('apply-search');
+        if (applySearchBtn) {
+            applySearchBtn.addEventListener('click', () => this.applySearchFilter());
+        }
+
+        // Clear search
+        const clearSearchBtn = document.getElementById('clear-search');
+        if (clearSearchBtn) {
+            clearSearchBtn.addEventListener('click', () => this.clearSearchFilter());
+        }
+
+        // Apply date
+        const applyDateBtn = document.getElementById('apply-date');
+        if (applyDateBtn) {
+            applyDateBtn.addEventListener('click', () => this.applyDateFilter());
+        }
+
+        // Clear date
+        const clearDateBtn = document.getElementById('clear-date');
+        if (clearDateBtn) {
+            clearDateBtn.addEventListener('click', () => this.clearDateFilter());
+        }
+
+        // Remove filter tags
+        const removeSearchFilterBtn = document.getElementById('remove-search-filter');
+        if (removeSearchFilterBtn) {
+            removeSearchFilterBtn.addEventListener('click', () => this.clearSearchFilter());
+        }
+
+        const removeDateFilterBtn = document.getElementById('remove-date-filter');
+        if (removeDateFilterBtn) {
+            removeDateFilterBtn.addEventListener('click', () => this.clearDateFilter());
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#search-dropdown') && !e.target.closest('#search-btn') && !e.target.closest('#match-search')) {
+                this.hideSearchDropdown();
+            }
+            if (!e.target.closest('#date-picker') && !e.target.closest('#date-filter-btn')) {
+                this.hideDatePicker();
+            }
+        });
+    }
+
     async loadMatches() {
         this.showMatchesLoading(true);
         this.showMatchesError(false);
@@ -103,12 +177,21 @@ class EnhancedCricketAnalyzerApp {
         this.showNoMatches(false);
 
         try {
-            const response = await fetch(`${CONSTANTS.API_BASE_URL}/recent-matches?limit=20`);
+            console.log('Loading matches from:', `${CONSTANTS.API_BASE_URL}/recent-matches?limit=50`);
+            const response = await fetch(`${CONSTANTS.API_BASE_URL}/recent-matches?limit=50`);
+            console.log('Response status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const result = await response.json();
+            console.log('API response:', result);
 
             if (result.success && result.data) {
-                this.matches = result.data;
-                this.displayMatches();
+                this.allMatches = result.data; // Store all matches
+                console.log('Loaded matches:', this.allMatches.length);
+                this.applyFilters(); // Apply any active filters
             } else {
                 throw new Error(result.message || 'Failed to load matches');
             }
@@ -122,28 +205,249 @@ class EnhancedCricketAnalyzerApp {
     }
 
     displayMatches() {
+        console.log('Displaying matches. Count:', this.matches.length);
         const matchesGrid = document.getElementById('matches-grid');
-        if (!matchesGrid) return;
+        if (!matchesGrid) {
+            console.error('Matches grid element not found!');
+            return;
+        }
 
         // Clear existing content
         matchesGrid.innerHTML = '';
 
         if (this.matches.length === 0) {
+            console.log('No matches to display, showing no matches message');
             this.showNoMatches(true);
             return;
         }
 
+        console.log('Creating match cards for:', this.matches.length, 'matches');
         // Create match cards
         const matchCards = MatchCard.createCards(this.matches, (matchData) => {
             this.handleMatchSelection(matchData);
         });
 
+        console.log('Created match cards:', matchCards.length);
         // Add cards to grid
         matchCards.forEach(card => {
             matchesGrid.appendChild(card);
         });
 
         this.showMatchesGrid(true);
+        console.log('Match grid should now be visible');
+    }
+
+    // Search and Filter Methods
+    toggleSearchDropdown() {
+        const dropdown = document.getElementById('search-dropdown');
+        const searchContainer = document.querySelector('.flex.flex-col.sm\\:flex-row.gap-3.mb-4.relative');
+        
+        if (dropdown && searchContainer) {
+            dropdown.classList.toggle('hidden');
+            if (!dropdown.classList.contains('hidden')) {
+                this.populateTeamSelects();
+                this.hideDatePicker();
+                
+                // Position dropdown relative to the search container
+                const containerRect = searchContainer.getBoundingClientRect();
+                
+                // Position the dropdown to the right of the search bar, beside the date button
+                dropdown.style.position = 'absolute';
+                dropdown.style.top = '0';
+                dropdown.style.right = '0';
+                dropdown.style.zIndex = '50';
+            }
+        }
+    }
+
+    hideSearchDropdown() {
+        const dropdown = document.getElementById('search-dropdown');
+        if (dropdown) {
+            dropdown.classList.add('hidden');
+        }
+    }
+
+    toggleDatePicker() {
+        const picker = document.getElementById('date-picker');
+        if (picker) {
+            picker.classList.toggle('hidden');
+            if (!picker.classList.contains('hidden')) {
+                this.hideSearchDropdown();
+            }
+        }
+    }
+
+    hideDatePicker() {
+        const picker = document.getElementById('date-picker');
+        if (picker) {
+            picker.classList.add('hidden');
+        }
+    }
+
+    populateTeamSelects() {
+        const teamASelect = document.getElementById('team-a-select');
+        const teamBSelect = document.getElementById('team-b-select');
+        
+        if (!teamASelect || !teamBSelect) return;
+
+        // Get unique team names from all matches
+        const teams = new Set();
+        this.allMatches.forEach(match => {
+            teams.add(match.team1.name);
+            teams.add(match.team2.name);
+        });
+
+        const teamOptions = Array.from(teams).sort().map(teamName => {
+            const logo = this.getTeamLogo(teamName);
+            return `<option value="${teamName}">${logo.short} - ${teamName}</option>`;
+        }).join('');
+
+        teamASelect.innerHTML = '<option value="">Team A</option>' + teamOptions;
+        teamBSelect.innerHTML = '<option value="">Team B</option>' + teamOptions;
+    }
+
+    applySearchFilter() {
+        const teamA = document.getElementById('team-a-select')?.value;
+        const teamB = document.getElementById('team-b-select')?.value;
+
+        if (!teamA && !teamB) {
+            this.components.toast.showError('Please select at least one team');
+            return;
+        }
+
+        this.activeFilters.search = { teamA, teamB };
+        this.hideSearchDropdown();
+        this.applyFilters();
+        this.updateActiveFiltersDisplay();
+    }
+
+    clearSearchFilter() {
+        this.activeFilters.search = null;
+        this.hideSearchDropdown();
+        this.applyFilters();
+        this.updateActiveFiltersDisplay();
+        
+        // Clear select values
+        const teamASelect = document.getElementById('team-a-select');
+        const teamBSelect = document.getElementById('team-b-select');
+        if (teamASelect) teamASelect.value = '';
+        if (teamBSelect) teamBSelect.value = '';
+    }
+
+    applyDateFilter() {
+        const dateInput = document.getElementById('match-date');
+        const selectedDate = dateInput?.value;
+
+        if (!selectedDate) {
+            this.components.toast.showError('Please select a date');
+            return;
+        }
+
+        this.activeFilters.date = selectedDate;
+        this.hideDatePicker();
+        this.applyFilters();
+        this.updateActiveFiltersDisplay();
+    }
+
+    clearDateFilter() {
+        this.activeFilters.date = null;
+        this.hideDatePicker();
+        this.applyFilters();
+        this.updateActiveFiltersDisplay();
+        
+        // Clear date input
+        const dateInput = document.getElementById('match-date');
+        if (dateInput) dateInput.value = '';
+    }
+
+    applyFilters() {
+        console.log('Applying filters. All matches:', this.allMatches.length);
+        console.log('Active filters:', this.activeFilters);
+        
+        let filteredMatches = [...this.allMatches];
+
+        // Apply search filter
+        if (this.activeFilters.search) {
+            const { teamA, teamB } = this.activeFilters.search;
+            console.log('Applying search filter:', { teamA, teamB });
+            filteredMatches = filteredMatches.filter(match => {
+                const matchTeam1 = match.team1.name;
+                const matchTeam2 = match.team2.name;
+                
+                if (teamA && teamB) {
+                    return (matchTeam1 === teamA && matchTeam2 === teamB) || 
+                           (matchTeam1 === teamB && matchTeam2 === teamA);
+                } else if (teamA) {
+                    return matchTeam1 === teamA || matchTeam2 === teamA;
+                } else if (teamB) {
+                    return matchTeam1 === teamB || matchTeam2 === teamB;
+                }
+                return false;
+            });
+        }
+
+        // Apply date filter
+        if (this.activeFilters.date) {
+            console.log('Applying date filter:', this.activeFilters.date);
+            filteredMatches = filteredMatches.filter(match => {
+                const matchDate = new Date(match.match_date).toISOString().split('T')[0];
+                return matchDate === this.activeFilters.date;
+            });
+        }
+
+        this.matches = filteredMatches;
+        console.log('Filtered matches:', this.matches.length);
+        this.displayMatches();
+    }
+
+    updateActiveFiltersDisplay() {
+        const activeFiltersContainer = document.getElementById('active-filters');
+        const searchFilterTag = document.getElementById('search-filter-tag');
+        const dateFilterTag = document.getElementById('date-filter-tag');
+        const searchFilterText = document.getElementById('search-filter-text');
+        const dateFilterText = document.getElementById('date-filter-text');
+
+        if (!activeFiltersContainer) return;
+
+        let hasActiveFilters = false;
+
+        // Update search filter tag
+        if (this.activeFilters.search) {
+            const { teamA, teamB } = this.activeFilters.search;
+            const teamALogo = teamA ? this.getTeamLogo(teamA).short : '';
+            const teamBLogo = teamB ? this.getTeamLogo(teamB).short : '';
+            
+            if (teamA && teamB) {
+                searchFilterText.textContent = `${teamALogo} vs ${teamBLogo}`;
+            } else if (teamA) {
+                searchFilterText.textContent = `${teamALogo} matches`;
+            } else if (teamB) {
+                searchFilterText.textContent = `${teamBLogo} matches`;
+            }
+            
+            searchFilterTag.classList.remove('hidden');
+            hasActiveFilters = true;
+        } else {
+            searchFilterTag.classList.add('hidden');
+        }
+
+        // Update date filter tag
+        if (this.activeFilters.date) {
+            const date = new Date(this.activeFilters.date);
+            const formattedDate = date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+            dateFilterText.textContent = formattedDate;
+            dateFilterTag.classList.remove('hidden');
+            hasActiveFilters = true;
+        } else {
+            dateFilterTag.classList.add('hidden');
+        }
+
+        // Show/hide active filters container
+        activeFiltersContainer.classList.toggle('hidden', !hasActiveFilters);
     }
 
     handleMatchSelection(matchData) {
