@@ -346,9 +346,9 @@ class TabbedTeamAnalysisApp {
                 if (result.isValid) {
                     // Valid player - show with new card design
                     const isAutoReplaced = result.autoReplaced;
-                    const bgColor = isAutoReplaced ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200';
-                    const statusColor = isAutoReplaced ? 'text-blue-600' : 'text-green-600';
-                    const statusText = isAutoReplaced ? 'Auto-corrected' : 'Validated';
+                    const bgColor = isAutoReplaced ? 'bg-white border-gray-200' : 'bg-white border-gray-200';
+                    const statusColor = isAutoReplaced ? 'text-green-600' : 'text-green-600';
+                    const statusText = isAutoReplaced ? 'Validated' : 'Validated';
                     
                     // Check if this player is captain or vice-captain
                     const isCaptain = this.currentTeamData.captain === result.validatedName;
