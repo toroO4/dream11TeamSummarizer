@@ -1636,11 +1636,99 @@ class TabbedTeamAnalysisApp {
 
     displayAIAnalysis(analysis) {
         const aiContainer = document.getElementById('ai-analysis-content');
+        
+        // Parse the analysis to create a better formatted display
+        const formattedAnalysis = this.formatAIAnalysis(analysis);
+        
         aiContainer.innerHTML = `
+            <div class="space-y-4">
+                ${formattedAnalysis}
+            </div>
+        `;
+    }
+
+    formatAIAnalysis(analysis) {
+        if (!analysis) return '<div class="text-gray-500">No analysis available</div>';
+        
+        // Split the analysis by team sections
+        const teamSections = analysis.split(/\*\*([^*]+)\*\*:/);
+        let formattedHtml = '';
+        
+        for (let i = 1; i < teamSections.length; i += 2) {
+            const teamName = teamSections[i].trim();
+            const teamAnalysis = teamSections[i + 1] || '';
+            
+            // Parse the 7 criteria for this team
+            const criteria = this.parseTeamCriteria(teamAnalysis);
+            
+            formattedHtml += `
+                <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                    <h5 class="font-bold text-lg text-primary mb-4 border-b border-gray-200 pb-2">${teamName}</h5>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        ${criteria.map(criterion => `
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h6 class="font-semibold text-sm text-gray-900">${criterion.name}</h6>
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                        criterion.rating >= 4 ? 'bg-green-100 text-green-800' :
+                                        criterion.rating >= 3 ? 'bg-yellow-100 text-yellow-800' :
+                                        'bg-red-100 text-red-800'
+                                    }">
+                                        ${criterion.rating}/5
+                                    </span>
+                                </div>
+                                <p class="text-xs text-gray-700 leading-relaxed">${criterion.explanation}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        return formattedHtml || `
             <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
                 <div class="text-sm sm:text-base text-gray-800 whitespace-pre-line leading-relaxed">${analysis}</div>
             </div>
         `;
+    }
+
+    parseTeamCriteria(teamAnalysis) {
+        const criteria = [
+            'Team Balance',
+            'Captaincy Choice',
+            'Match Advantage',
+            'Venue Strategy',
+            'Covariance Analysis',
+            'Pitch Conditions',
+            'Overall Rating'
+        ];
+        
+        return criteria.map(criterionName => {
+            // Find the criterion in the analysis
+            const pattern = new RegExp(`${criterionName}:\\s*\\[Rating:\\s*(\\d+(?:\\.\\d+)?/5)\\]\\s*-\\s*(.*?)(?=\\n[A-Z]|$)`, 'i');
+            const match = teamAnalysis.match(pattern);
+            
+            if (match) {
+                const rating = parseFloat(match[1].split('/')[0]);
+                const explanation = match[2].trim();
+                return {
+                    name: criterionName,
+                    rating: rating,
+                    explanation: explanation
+                };
+            } else {
+                // Fallback: try to find just the rating
+                const ratingPattern = new RegExp(`${criterionName}:\\s*(\\d+(?:\\.\\d+)?/5)`, 'i');
+                const ratingMatch = teamAnalysis.match(ratingPattern);
+                const rating = ratingMatch ? parseFloat(ratingMatch[1].split('/')[0]) : 3;
+                
+                return {
+                    name: criterionName,
+                    rating: rating,
+                    explanation: 'Analysis details not available'
+                };
+            }
+        });
     }
 
     generateRecommendation(comparisonData, aiAnalysis) {
