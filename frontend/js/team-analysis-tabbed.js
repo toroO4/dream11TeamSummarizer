@@ -336,50 +336,78 @@ class TabbedTeamAnalysisApp {
             // Store validation results
             this.currentTeamData.validationResults = validationResults;
             
-            // Display players with validation status
+            // Display players with new card design
             playersList.innerHTML = '';
             let hasInvalidPlayers = false;
             
             validationResults.forEach((result, index) => {
                 const playerDiv = document.createElement('div');
-                playerDiv.className = 'flex items-center justify-between p-3 rounded border transition-all duration-200';
+                
                 
                 if (result.isValid) {
-                    // Valid player (including auto-corrected)
+                    // Valid player - show with new card design
                     const isAutoReplaced = result.autoReplaced;
-                    const bgColor = isAutoReplaced ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200';
-                    const iconColor = isAutoReplaced ? 'text-blue-600' : 'text-green-600';
-                    const icon = isAutoReplaced ? '🔄' : '✅';
-                    const statusText = isAutoReplaced ? `${Math.round(result.confidence * 100)}% match` : 'Validated';
+                    const bgColor = isAutoReplaced ? 'bg-white border-gray-200' : 'bg-white border-gray-200';
+                    const statusColor = isAutoReplaced ? 'text-green-600' : 'text-green-600';
+                    const statusText = isAutoReplaced ? 'Validated' : 'Validated';
                     
-                    playerDiv.className += ` ${bgColor}`;
+                    // Check if this player is captain or vice-captain
+                    const isCaptain = this.currentTeamData.captain === result.validatedName;
+                    const isViceCaptain = this.currentTeamData.viceCaptain === result.validatedName;
+                    
                     playerDiv.innerHTML = `
-                        <div class="flex items-center">
-                            <span class="${iconColor} mr-2">${icon}</span>
-                            <div>
-                                <span class="font-medium text-gray-900">${result.validatedName}</span>
-                                <div class="text-xs text-gray-500">${result.role || 'Unknown'} • ${result.team || 'Unknown'}</div>
-                                ${isAutoReplaced ? `<div class="text-xs ${iconColor} italic">Auto-corrected from "${result.inputName}"</div>` : ''}
+                        <div class="flex items-center p-2 ${bgColor} border rounded-lg shadow-sm hover:shadow-md transition-all duration-200">
+                            <!-- Player Image with C/VC Label -->
+                            <div class="relative mr-3">
+                                <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                                    <img src="https://fantasy.cricbuzz11.com/_next/image?url=https%3A%2F%2Fd13ir53smqqeyp.cloudfront.net%2Fplayer-images%2Fdefault-player-image.png&w=96&q=75" 
+                                         alt="${result.validatedName}" 
+                                         class="w-full h-full object-cover"
+                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                    <div class="w-full h-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white font-bold text-lg" style="display: none;">
+                                        ${result.validatedName.charAt(0).toUpperCase()}
+                                    </div>
+                                </div>
+                                ${isCaptain ? '<div class="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 text-white text-xs font-bold rounded-full flex items-center justify-center">C</div>' : ''}
+                                ${isViceCaptain ? '<div class="absolute -top-1 -right-1 w-4 h-4 bg-gray-700 text-white text-xs font-bold rounded-full flex items-center justify-center">VC</div>' : ''}
+                            </div>
+                            
+                            <!-- Player Info -->
+                            <div class="flex-1 min-w-0">
+                                <div class="font-semibold text-gray-900 text-sm truncate">${result.validatedName}</div>
+                                <div class="text-xs text-gray-500">
+                                    <span class="font-medium">${result.role || 'Unknown'}</span> • 
+                                    <span class="font-medium">${this.getTeamShortName(result.team) || 'Unknown'}</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="text-xs ${iconColor} font-medium">${statusText}</div>
                     `;
                 } else {
                     // Invalid player - needs override
                     hasInvalidPlayers = true;
-                    playerDiv.className += ' bg-red-50 border-red-200';
                     playerDiv.innerHTML = `
-                        <div class="flex items-center">
-                            <span class="text-red-600 mr-2">❌</span>
-                            <div>
-                                <span class="font-medium text-gray-900">${result.inputName}</span>
-                                <div class="text-xs text-red-600">Not found in database</div>
+                        <div class="flex items-center p-2 bg-red-50 border border-red-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200">
+                            <!-- Player Image Placeholder -->
+                            <div class="relative mr-3">
+                                <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center overflow-hidden">
+                                    <div class="w-full h-full bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center text-white font-bold text-lg">
+                                        ?
+                                    </div>
+                                </div>
                             </div>
+                            
+                            <!-- Player Info -->
+                            <div class="flex-1 min-w-0">
+                                <div class="font-semibold text-gray-900 text-sm truncate">${result.inputName}</div>
+                                <div class="text-xs text-red-600 font-medium">Not found in database</div>
+                            </div>
+                            
+                            <!-- Override Button -->
+                            <button onclick="window.tabbedApp.showPlayerOverrideModal('${result.inputName}', ${index})" 
+                                    class="ml-2 text-xs bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition-colors font-medium">
+                                🔍 Override
+                            </button>
                         </div>
-                        <button onclick="window.tabbedApp.showPlayerOverrideModal('${result.inputName}', ${index})" 
-                                class="text-xs text-red-600 hover:text-red-800 underline bg-white px-2 py-1 rounded border">
-                            🔍 Override
-                        </button>
                     `;
                 }
                 
@@ -485,15 +513,38 @@ class TabbedTeamAnalysisApp {
                 const bgColor = similarityPercent >= 80 ? 'bg-green-50 border-green-200' : 
                                similarityPercent >= 60 ? 'bg-yellow-50 border-yellow-200' : 
                                'bg-gray-50 border-gray-200';
+                const scoreColor = similarityPercent >= 80 ? 'text-green-600' : similarityPercent >= 60 ? 'text-yellow-600' : 'text-gray-500';
                 
                 suggestionsHtml += `
-                    <label class="flex items-center p-2 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors ${bgColor} override-suggestion" data-player="${suggestion.playerName}" data-player-id="${suggestion.playerId}" data-role="${suggestion.role}" data-team="${suggestion.team}">
-                        <input type="radio" name="override-player" value="${suggestion.playerName}" class="mr-2" tabindex="-1">
+                    <label class="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors ${bgColor} override-suggestion" data-player="${suggestion.playerName}" data-player-id="${suggestion.playerId}" data-role="${suggestion.role}" data-team="${suggestion.team}">
+                        <input type="radio" name="override-player" value="${suggestion.playerName}" class="mr-3" tabindex="-1">
+                        
+                        <!-- Player Image -->
+                        <div class="mr-3">
+                            <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                                <img src="https://fantasy.cricbuzz11.com/_next/image?url=https%3A%2F%2Fd13ir53smqqeyp.cloudfront.net%2Fplayer-images%2Fdefault-player-image.png&w=96&q=75" 
+                                     alt="${suggestion.playerName}" 
+                                     class="w-full h-full object-cover"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="w-full h-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white font-bold text-sm" style="display: none;">
+                                    ${suggestion.playerName.charAt(0).toUpperCase()}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Player Info -->
                         <div class="flex-1 min-w-0">
                             <div class="font-medium text-sm text-gray-800 truncate">${suggestion.playerName}</div>
-                            <div class="text-xs text-gray-500">${suggestion.role} • ${suggestion.team}</div>
+                            <div class="text-xs text-gray-500">
+                                <span class="font-medium">${suggestion.role}</span> • 
+                                <span class="font-medium">${this.getTeamShortName(suggestion.team)}</span>
+                            </div>
                         </div>
-                        <div class="text-xs font-medium ${similarityPercent >= 80 ? 'text-green-600' : similarityPercent >= 60 ? 'text-yellow-600' : 'text-gray-500'} ml-2">${similarityPercent}%</div>
+                        
+                        <!-- Similarity Score -->
+                        <div class="text-xs font-medium ${scoreColor} ml-2 bg-white px-2 py-1 rounded border">
+                            ${similarityPercent}%
+                        </div>
                     </label>
                 `;
             });
@@ -501,13 +552,28 @@ class TabbedTeamAnalysisApp {
 
         // Add option to keep original
         suggestionsHtml += `
-            <label class="flex items-center p-2 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors bg-gray-50 override-suggestion" data-player="${playerName}">
-                <input type="radio" name="override-player" value="${playerName}" class="mr-2" tabindex="-1">
+            <label class="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors bg-gray-50 override-suggestion" data-player="${playerName}">
+                <input type="radio" name="override-player" value="${playerName}" class="mr-3" tabindex="-1">
+                
+                <!-- Player Image Placeholder -->
+                <div class="mr-3">
+                    <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden">
+                        <div class="w-full h-full bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center text-white font-bold text-sm">
+                            ?
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Player Info -->
                 <div class="flex-1 min-w-0">
                     <div class="font-medium text-sm text-gray-800 truncate">${playerName}</div>
                     <div class="text-xs text-gray-500">Keep Original (Not in Database)</div>
                 </div>
-                <div class="text-xs font-medium text-gray-400 ml-2">0%</div>
+                
+                <!-- Similarity Score -->
+                <div class="text-xs font-medium text-gray-400 ml-2 bg-white px-2 py-1 rounded border">
+                    0%
+                </div>
             </label>
         `;
 
@@ -1137,8 +1203,12 @@ class TabbedTeamAnalysisApp {
     }
 
     loadTeamDetailsData() {
-        // Team details are loaded when tab is switched
-        // Data is already populated from handleTeamSelection
+        // Auto-select the first team if available
+        const teamSelector = document.getElementById('team-selector');
+        if (teamSelector && teamSelector.options.length > 0) {
+            teamSelector.selectedIndex = 1; // Select first team (no placeholder anymore)
+            this.handleTeamSelection({ target: teamSelector });
+        }
     }
 
     async loadMatchStatsData() {
@@ -1297,6 +1367,11 @@ class TabbedTeamAnalysisApp {
             `;
             content.innerHTML = errorHtml;
         }
+    }
+
+    // Helper method to get team short name
+    getTeamShortName(fullTeamName) {
+        return TabbedTeamAnalysisApp.TEAM_SHORT_NAMES[fullTeamName] || fullTeamName;
     }
 
     // Mapping of full team names to short forms
