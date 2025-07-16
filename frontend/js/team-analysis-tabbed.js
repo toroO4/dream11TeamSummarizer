@@ -1202,8 +1202,12 @@ class TabbedTeamAnalysisApp {
     }
 
     loadTeamDetailsData() {
-        // Team details are loaded when tab is switched
-        // Data is already populated from handleTeamSelection
+        // Auto-select the first team if available
+        const teamSelector = document.getElementById('team-selector');
+        if (teamSelector && teamSelector.options.length > 0) {
+            teamSelector.selectedIndex = 1; // Select first team (no placeholder anymore)
+            this.handleTeamSelection({ target: teamSelector });
+        }
     }
 
     async loadMatchStatsData() {
