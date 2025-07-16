@@ -36,14 +36,12 @@ class Toast {
         console.log('Showing error toast:', message);
         
         if (!this.isInitialized) {
-            console.warn('Toast not initialized, falling back to alert');
-            alert(`Error: ${message}`);
+            console.warn('Toast not initialized, skipping error message:', message);
             return;
         }
         
         if (!this.errorToast || !this.errorMessage) {
-            console.error('Error toast elements not found');
-            alert(`Error: ${message}`);
+            console.error('Error toast elements not found, skipping error message:', message);
             return;
         }
         
@@ -63,14 +61,12 @@ class Toast {
         console.log('Showing success toast:', message);
         
         if (!this.isInitialized) {
-            console.warn('Toast not initialized, falling back to alert');
-            alert(`Success: ${message}`);
+            console.warn('Toast not initialized, skipping success message:', message);
             return;
         }
         
         if (!this.successToast || !this.successMessage) {
-            console.error('Success toast elements not found');
-            alert(`Success: ${message}`);
+            console.error('Success toast elements not found, skipping success message:', message);
             return;
         }
         
