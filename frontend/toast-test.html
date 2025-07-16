@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toast Test - cricbuzz11</title>
+    <link href="https://fonts.googleapis.com/css2?family=Saira:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="js/utils/tailwind-config.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen font-primary">
+    <!-- Header -->
+    <div id="app-header"></div>
+    <script src="js/components/AppHeader.js"></script>
+
+    <!-- Main Content -->
+    <main class="w-full max-w-sm mx-auto px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 mobile-padding">
+        
+        <!-- Test Section -->
+        <section class="bg-white rounded shadow-cricket border border-gray-200 p-4 sm:p-6 card-hover animate-fade-in">
+            <div class="flex items-center mb-3 sm:mb-4">
+                <div class="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-primary to-secondary rounded flex items-center justify-center mr-2 sm:mr-3">
+                    <span class="text-white text-xs sm:text-sm font-bold">🧪</span>
+                </div>
+                <h2 class="text-base sm:text-lg font-bold text-gray-900 font-primary">Toast Test</h2>
+            </div>
+            
+            <div class="space-y-3">
+                <p class="text-sm text-gray-600">Test the toast notification system:</p>
+                
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="test-success" class="bg-green-600 text-white py-2 px-3 rounded text-sm font-semibold hover:bg-green-700 transition-all duration-200">
+                        ✅ Success Toast
+                    </button>
+                    <button id="test-error" class="bg-red-600 text-white py-2 px-3 rounded text-sm font-semibold hover:bg-red-700 transition-all duration-200">
+                        ❌ Error Toast
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="test-warning" class="bg-yellow-600 text-white py-2 px-3 rounded text-sm font-semibold hover:bg-yellow-700 transition-all duration-200">
+                        ⚠️ Warning Toast
+                    </button>
+                    <button id="test-info" class="bg-blue-600 text-white py-2 px-3 rounded text-sm font-semibold hover:bg-blue-700 transition-all duration-200">
+                        ℹ️ Info Toast
+                    </button>
+                </div>
+                
+                <div class="mt-4 p-3 bg-gray-50 rounded text-xs text-gray-600">
+                    <p><strong>Instructions:</strong></p>
+                    <ul class="list-disc list-inside mt-1 space-y-1">
+                        <li>Click any button to test toast notifications</li>
+                        <li>Toasts should appear at the bottom of the screen</li>
+                        <li>They should auto-hide after a few seconds</li>
+                        <li>Check browser console for debug information</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Back to Main -->
+        <section class="text-center">
+            <a href="index.html" class="inline-block bg-primary text-white py-2 px-4 rounded text-sm font-semibold hover:bg-primary/90 transition-all duration-200">
+                ← Back to Main App
+            </a>
+        </section>
+    </main>
+
+    <!-- Toast Messages -->
+    <div id="error-toast" class="fixed bottom-4 left-4 right-4 max-w-sm mx-auto bg-red-600 text-white p-3 sm:p-4 rounded shadow-lg transform translate-y-full transition-all duration-300 z-50">
+        <div class="flex items-center">
+            <div class="w-5 h-5 sm:w-6 sm:h-6 bg-white/20 rounded-full flex items-center justify-center mr-2 sm:mr-3">
+                <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                </svg>
+            </div>
+            <span id="error-message" class="font-medium text-sm sm:text-base"></span>
+        </div>
+    </div>
+
+    <div id="success-toast" class="fixed bottom-4 left-4 right-4 max-w-sm mx-auto bg-green-600 text-white p-3 sm:p-4 rounded shadow-lg transform translate-y-full transition-all duration-300 z-50">
+        <div class="flex items-center">
+            <div class="w-5 h-5 sm:w-6 sm:h-6 bg-white/20 rounded-full flex items-center justify-center mr-2 sm:mr-3">
+                <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                </svg>
+            </div>
+            <span id="success-message" class="font-medium text-sm sm:text-base"></span>
+        </div>
+    </div>
+
+    <!-- Load Scripts -->
+    <script src="js/utils/constants.js"></script>
+    <script src="js/components/Toast.js"></script>
+    <script src="js/components/appFooter.js"></script>
+    <div id="app-footer"></div>
+
+    <script>
+        // Simple test app
+        class ToastTestApp {
+            constructor() {
+                this.toast = new Toast();
+                this.toast.initialize(
+                    'error-toast', 'error-message',
+                    'success-toast', 'success-message'
+                );
+                this.setupEventListeners();
+                console.log('Toast test app initialized');
+            }
+
+            setupEventListeners() {
+                document.getElementById('test-success').addEventListener('click', () => {
+                    this.toast.showSuccess('This is a success message! 🎉');
+                });
+
+                document.getElementById('test-error').addEventListener('click', () => {
+                    this.toast.showError('This is an error message! ❌');
+                });
+
+                document.getElementById('test-warning').addEventListener('click', () => {
+                    this.toast.showWarning('This is a warning message! ⚠️');
+                });
+
+                document.getElementById('test-info').addEventListener('click', () => {
+                    this.toast.showInfo('This is an info message! ℹ️');
+                });
+            }
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            window.toastTestApp = new ToastTestApp();
+        });
+    </script>
+</body>
+</html> 
