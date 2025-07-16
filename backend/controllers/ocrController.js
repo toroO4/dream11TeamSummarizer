@@ -8,41 +8,71 @@ exports.processImage = async (req, res) => {
                 message: 'No image file provided'
             });
         }
+
+        console.log('Processing image with OCR...');
         const ocrText = await processImageWithOCR(req.file.buffer);
+        console.log('OCR text extracted, parsing team data...');
+        
         const teamData = parseTeamDataFromOCRText(ocrText);
+        
+        // Check if we got enough players
         if (teamData.players.length === 0) {
             return res.status(400).json({
                 success: false,
-                message: 'No player data could be extracted from the image'
+                message: 'No player data could be extracted from the image',
+                suggestion: 'Please ensure the image is clear, well-lit, and shows all player names clearly. Try taking a screenshot in landscape mode for better results.',
+                extractedCount: 0,
+                expectedCount: 11
             });
         }
+        
+        if (teamData.players.length < 8) {
+            return res.status(400).json({
+                success: false,
+                message: `Only ${teamData.players.length} players were extracted from the image`,
+                suggestion: `Expected 11 players but found only ${teamData.players.length}. Please ensure all player names are visible and clearly readable in the screenshot. You can manually add the missing players after extraction.`,
+                data: teamData,
+                extractedCount: teamData.players.length,
+                expectedCount: 11,
+                partialSuccess: true
+            });
+        }
+        
+        // Success response
         res.json({
             success: true,
             data: teamData,
             message: `Successfully extracted ${teamData.players.length} players from your uploaded image`,
-            extractedFromImage: true
+            extractedFromImage: true,
+            extractedCount: teamData.players.length,
+            expectedCount: 11
         });
+        
     } catch (error) {
-        const errorMessage = error.message || 'Failed to process image';
-        const isNetworkError = errorMessage.includes('Unable to connect') || errorMessage.includes('timeout');
-        const isAPIKeyError = errorMessage.includes('OCR API key not configured');
-        let statusCode = 500;
-        let suggestion = 'Please try again with a clear Dream11 screenshot.';
-        if (isAPIKeyError) {
-            statusCode = 400;
-            suggestion = 'Please configure your OCR API key in the .env file. Get a free key from https://ocr.space/ocrapi';
-        } else if (isNetworkError) {
-            statusCode = 503;
+        console.error('OCR processing error:', error);
+        
+        let errorMessage = 'Failed to process image';
+        let suggestion = 'Please try again with a clear, well-lit screenshot of your Dream11 team.';
+        
+        if (error.message.includes('OCR API key not configured')) {
+            errorMessage = 'OCR service not configured';
+            suggestion = 'Please contact support to configure the OCR service.';
+        } else if (error.message.includes('No text detected')) {
+            errorMessage = 'No text could be detected in the image';
+            suggestion = 'Please ensure the image is clear, contains visible player names, and is not too blurry or dark.';
+        } else if (error.message.includes('Unable to connect')) {
+            errorMessage = 'Unable to connect to OCR service';
             suggestion = 'Please check your internet connection and try again.';
-        } else if (errorMessage.includes('No text detected')) {
-            statusCode = 400;
-            suggestion = 'Please upload a clear Dream11 screenshot with visible player names.';
+        } else if (error.message.includes('OCR service error')) {
+            errorMessage = 'OCR service error';
+            suggestion = 'The OCR service is temporarily unavailable. Please try again in a few minutes.';
         }
-        res.status(statusCode).json({
+        
+        res.status(500).json({
             success: false,
             message: errorMessage,
             suggestion: suggestion,
-            requiresAPIKey: isAPIKeyError
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 }; 

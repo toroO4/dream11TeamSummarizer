@@ -44,6 +44,7 @@ class TabbedTeamAnalysisApp {
     initializeComponents() {
         // Initialize Toast notifications
         this.components.toast = new Toast();
+        this.components.toast.initialize('error-toast', 'error-message', 'success-toast', 'success-message');
         
         // Initialize other components
         this.components.matchValidation = new MatchValidation(CONSTANTS.API_BASE_URL);
