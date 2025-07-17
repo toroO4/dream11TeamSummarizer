@@ -248,22 +248,51 @@ async function analyzeMultipleTeams({ teams, teamA, teamB, matchDate, venueStats
 
     // Prepare teams data for analysis
     const teamsData = teams.map((team, index) => {
-        const roleCounts = {};
-        const teamCounts = {};
-        team.players.forEach(player => {
-            const role = player.role || 'Unknown';
-            const playerTeam = player.team || 'Unknown';
-            roleCounts[role] = (roleCounts[role] || 0) + 1;
-            teamCounts[playerTeam] = (teamCounts[playerTeam] || 0) + 1;
-        });
+        // Handle both string array and object array formats
+        let playersList = team.players;
+        let roleCounts = {};
+        let teamCounts = {};
+        
+        if (typeof team.players === 'string') {
+            // Frontend sends players as comma-separated string
+            playersList = team.players.split(',').map(p => p.trim());
+        } else if (Array.isArray(team.players)) {
+            // Check if it's array of objects or array of strings
+            if (typeof team.players[0] === 'object') {
+                // Array of objects with role and team properties
+                team.players.forEach(player => {
+                    const role = player.role || 'Unknown';
+                    const playerTeam = player.team || 'Unknown';
+                    roleCounts[role] = (roleCounts[role] || 0) + 1;
+                    teamCounts[playerTeam] = (teamCounts[playerTeam] || 0) + 1;
+                });
+                playersList = team.players.map(p => `${p.name} (${p.role || 'Unknown'}, ${p.team || 'Unknown'})`);
+            } else {
+                // Array of strings
+                playersList = team.players;
+            }
+        }
+        
+        // If we don't have role/team data, create basic composition analysis
+        if (Object.keys(roleCounts).length === 0) {
+            const composition = team.composition || {};
+            roleCounts = {
+                'Batsmen': composition.batsmen || 0,
+                'Bowlers': composition.bowlers || 0,
+                'All-Rounders': composition.allRounders || 0,
+                'Wicket-Keepers': composition.wicketKeepers || 0
+            };
+        }
         
         return {
             teamName: team.name || `Team ${index + 1}`,
-            players: team.players.map(p => `${p.name} (${p.role || 'Unknown'}, ${p.team || 'Unknown'})`).join(', '),
+            players: Array.isArray(playersList) ? playersList.join(', ') : playersList,
             captain: team.captain || 'Not specified',
             viceCaptain: team.viceCaptain || 'Not specified',
             roleSummary: Object.entries(roleCounts).map(([role, count]) => `${role}: ${count}`).join(', '),
-            teamSummary: Object.entries(teamCounts).map(([team, count]) => `${team}: ${count}`).join(', ')
+            teamSummary: Object.entries(teamCounts).map(([team, count]) => `${team}: ${count}`).join(', '),
+            balanceScore: team.balanceScore || 5,
+            overallRating: team.overallRating || 5
         };
     });
 
@@ -315,6 +344,8 @@ Captain: ${team.captain}
 Vice-Captain: ${team.viceCaptain}
 Roles: ${team.roleSummary}
 Teams: ${team.teamSummary}
+Balance Score: ${team.balanceScore}/10
+Overall Rating: ${team.overallRating}/10
 `).join('\n')}
 
 PROVIDE COMPREHENSIVE ANALYSIS FOR EACH TEAM WITH EQUAL DETAIL.`;

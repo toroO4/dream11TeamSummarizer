@@ -1634,8 +1634,7 @@ class TabbedTeamAnalysisApp {
             const result = await response.json();
 
             if (result.success) {
-                this.displayAIAnalysis(result.analysis);
-                this.generateRecommendation(comparisonData, result.analysis);
+                this.generateComprehensiveRecommendation(comparisonData, result.analysis);
             } else {
                 throw new Error(result.message || 'AI analysis failed');
             }
@@ -1647,135 +1646,314 @@ class TabbedTeamAnalysisApp {
         }
     }
 
-    displayAIAnalysis(analysis) {
-        const aiContainer = document.getElementById('ai-analysis-content');
-        
-        // Parse the analysis to create a better formatted display
-        const formattedAnalysis = this.formatAIAnalysis(analysis);
-        
-        aiContainer.innerHTML = `
-            <div class="space-y-4">
-                ${formattedAnalysis}
-            </div>
-        `;
-    }
 
-    formatAIAnalysis(analysis) {
-        if (!analysis) return '<div class="text-gray-500">No analysis available</div>';
+
+    generateComprehensiveRecommendation(comparisonData, aiAnalysis) {
+        const recommendationContainer = document.getElementById('recommendation-content');
         
-        // Split the analysis by team sections
-        const teamSections = analysis.split(/\*\*([^*]+)\*\*:/);
-        let formattedHtml = '';
-        
-        for (let i = 1; i < teamSections.length; i += 2) {
-            const teamName = teamSections[i].trim();
-            const teamAnalysis = teamSections[i + 1] || '';
-            
-            // Parse the 7 criteria for this team
-            const criteria = this.parseTeamCriteria(teamAnalysis);
-            
-            formattedHtml += `
-                <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                    <h5 class="font-bold text-lg text-primary mb-4 border-b border-gray-200 pb-2">${teamName}</h5>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        ${criteria.map(criterion => `
-                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100">
-                                <div class="flex justify-between items-center mb-2">
-                                    <h6 class="font-semibold text-sm text-gray-900">${criterion.name}</h6>
-                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                        criterion.rating >= 4 ? 'bg-green-100 text-green-800' :
-                                        criterion.rating >= 3 ? 'bg-yellow-100 text-yellow-800' :
-                                        'bg-red-100 text-red-800'
-                                    }">
-                                        ${criterion.rating}/5
-                                    </span>
-                                </div>
-                                <p class="text-xs text-gray-700 leading-relaxed">${criterion.explanation}</p>
-                            </div>
-                        `).join('')}
+        if (comparisonData.teams.length === 1) {
+            recommendationContainer.innerHTML = `
+                <p class="text-sm text-gray-700">Only one team uploaded. Please upload more teams for comparison.</p>
+            `;
+            return;
+        }
+
+        // Analyze patterns and create comprehensive summary
+        const patterns = this.analyzeTeamPatterns(comparisonData);
+        const scenarioRecommendations = this.generateScenarioRecommendations(comparisonData);
+        const overallSummary = this.generateOverallSummary(comparisonData, patterns);
+
+        const recommendationText = `
+            <div class="space-y-6">
+                <!-- Overall Summary -->
+                <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                    <div class="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4">
+                        <h4 class="font-bold text-xl text-white flex items-center">
+                            <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Expert Analysis Summary
+                        </h4>
+                    </div>
+                    <div class="p-6">
+                        <div class="text-sm text-gray-700 leading-relaxed">${overallSummary}</div>
                     </div>
                 </div>
-            `;
-        }
-        
-        return formattedHtml || `
-            <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                <div class="text-sm sm:text-base text-gray-800 whitespace-pre-line leading-relaxed">${analysis}</div>
+
+                <!-- Team Patterns -->
+                <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                    <div class="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4">
+                        <h4 class="font-bold text-xl text-white flex items-center">
+                            <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+                            </svg>
+                            Team Patterns & Strategies
+                        </h4>
+                    </div>
+                    <div class="p-6">
+                        <div class="space-y-4">
+                            ${patterns.map(pattern => `
+                                <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                                    <h5 class="font-semibold text-sm text-gray-900 mb-2 flex items-center">
+                                        <div class="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                                        ${pattern.title}
+                                    </h5>
+                                    <p class="text-sm text-gray-700 leading-relaxed">${pattern.description}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scenario Recommendations -->
+                <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                    <div class="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4">
+                        <h4 class="font-bold text-xl text-white flex items-center">
+                            <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                            </svg>
+                            Scenario-Based Recommendations
+                        </h4>
+                    </div>
+                    <div class="p-6">
+                        <div class="space-y-4">
+                            ${scenarioRecommendations.map(scenario => `
+                                <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <h5 class="font-semibold text-sm text-gray-900">${scenario.scenario}</h5>
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800 border border-green-200">
+                                            ${scenario.recommendedTeam}
+                                        </span>
+                                    </div>
+                                    <p class="text-sm text-gray-700 leading-relaxed">${scenario.reasoning}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Best Overall Team -->
+                <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                    <div class="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4">
+                        <h4 class="font-bold text-xl text-white flex items-center">
+                            <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                            </svg>
+                            Best Overall Team
+                        </h4>
+                    </div>
+                    <div class="p-6">
+                        ${this.generateBestTeamRecommendation(comparisonData)}
+                    </div>
+                </div>
             </div>
         `;
+
+        recommendationContainer.innerHTML = recommendationText;
     }
 
-    parseTeamCriteria(teamAnalysis) {
-        const criteria = [
-            'Team Balance',
-            'Captaincy Choice',
-            'Match Advantage',
-            'Venue Strategy',
-            'Covariance Analysis',
-            'Pitch Conditions',
-            'Overall Rating'
-        ];
-        
-        return criteria.map(criterionName => {
-            // Find the criterion in the analysis
-            const pattern = new RegExp(`${criterionName}:\\s*\\[Rating:\\s*(\\d+(?:\\.\\d+)?/5)\\]\\s*-\\s*(.*?)(?=\\n[A-Z]|$)`, 'i');
-            const match = teamAnalysis.match(pattern);
-            
-            if (match) {
-                const rating = parseFloat(match[1].split('/')[0]);
-                const explanation = match[2].trim();
-                return {
-                    name: criterionName,
-                    rating: rating,
-                    explanation: explanation
-                };
-            } else {
-                // Fallback: try to find just the rating
-                const ratingPattern = new RegExp(`${criterionName}:\\s*(\\d+(?:\\.\\d+)?/5)`, 'i');
-                const ratingMatch = teamAnalysis.match(ratingPattern);
-                const rating = ratingMatch ? parseFloat(ratingMatch[1].split('/')[0]) : 3;
-                
-                return {
-                    name: criterionName,
-                    rating: rating,
-                    explanation: 'Analysis details not available'
-                };
+    analyzeTeamPatterns(comparisonData) {
+        const patterns = [];
+        const teams = comparisonData.teams;
+
+        // Analyze captaincy patterns
+        const captainTypes = teams.map(team => {
+            const captain = team.captain.toLowerCase();
+            if (captain.includes('kohli') || captain.includes('rohit') || captain.includes('dhoni')) {
+                return 'experienced-batsman';
+            } else if (captain.includes('chahal') || captain.includes('bumrah') || captain.includes('hazlewood')) {
+                return 'bowler';
+            } else if (captain.includes('stoinis') || captain.includes('jadeja') || captain.includes('pandya')) {
+                return 'all-rounder';
             }
+            return 'other';
         });
+
+        const captainPattern = this.getMostCommonPattern(captainTypes);
+        patterns.push({
+            title: 'Captaincy Strategy',
+            description: `Most teams prefer ${captainPattern} as captain, indicating a ${captainPattern === 'experienced-batsman' ? 'conservative, stability-focused approach' : captainPattern === 'bowler' ? 'aggressive, wicket-taking strategy' : 'balanced, all-round approach'}.`
+        });
+
+        // Analyze team composition patterns
+        const avgBatsmen = teams.reduce((sum, team) => sum + team.composition.batsmen, 0) / teams.length;
+        const avgBowlers = teams.reduce((sum, team) => sum + team.composition.bowlers, 0) / teams.length;
+        const avgAllRounders = teams.reduce((sum, team) => sum + team.composition.allRounders, 0) / teams.length;
+
+        patterns.push({
+            title: 'Composition Trends',
+            description: `Average composition: ${avgBatsmen.toFixed(1)} batsmen, ${avgBowlers.toFixed(1)} bowlers, ${avgAllRounders.toFixed(1)} all-rounders. ${this.getCompositionInsight(avgBatsmen, avgBowlers, avgAllRounders)}`
+        });
+
+        // Analyze rating patterns
+        const avgRating = teams.reduce((sum, team) => sum + team.overallRating, 0) / teams.length;
+        const ratingSpread = Math.max(...teams.map(t => t.overallRating)) - Math.min(...teams.map(t => t.overallRating));
+        
+        patterns.push({
+            title: 'Quality Assessment',
+            description: `Average team rating: ${avgRating.toFixed(1)}/10. ${ratingSpread < 2 ? 'Teams are closely matched' : 'Significant quality differences exist'}. ${avgRating >= 7 ? 'Overall high-quality teams' : avgRating >= 5 ? 'Moderate quality teams' : 'Teams need improvement'}.`
+        });
+
+        return patterns;
     }
 
-    generateRecommendation(comparisonData, aiAnalysis) {
-        // Find the best team based on overall rating
+    generateScenarioRecommendations(comparisonData) {
+        const scenarios = [];
+        const teams = comparisonData.teams;
+
+        // Scenario 1: Batting first
+        const battingFirstTeam = teams.reduce((best, current) => {
+            const battingStrength = current.composition.batsmen + (current.composition.allRounders * 0.5);
+            const bestBattingStrength = best.composition.batsmen + (best.composition.allRounders * 0.5);
+            return battingStrength > bestBattingStrength ? current : best;
+        });
+        scenarios.push({
+            scenario: '🏏 Batting First',
+            recommendedTeam: battingFirstTeam.name,
+            reasoning: `Strong batting lineup with ${battingFirstTeam.composition.batsmen} specialist batsmen and ${battingFirstTeam.composition.allRounders} all-rounders. Ideal for setting a competitive total.`
+        });
+
+        // Scenario 2: Chasing
+        const chasingTeam = teams.reduce((best, current) => {
+            const chasingStrength = current.composition.bowlers + (current.composition.allRounders * 0.5);
+            const bestChasingStrength = best.composition.bowlers + (best.composition.allRounders * 0.5);
+            return chasingStrength > bestChasingStrength ? current : best;
+        });
+        scenarios.push({
+            scenario: '🎯 Chasing Target',
+            recommendedTeam: chasingTeam.name,
+            reasoning: `Strong bowling attack with ${chasingTeam.composition.bowlers} specialist bowlers. Can restrict opposition and chase effectively.`
+        });
+
+        // Scenario 3: Spin-friendly pitch
+        const spinTeam = teams.reduce((best, current) => {
+            const spinStrength = current.players.filter(p => 
+                p.toLowerCase().includes('chahal') || 
+                p.toLowerCase().includes('jadeja') || 
+                p.toLowerCase().includes('ashwin')
+            ).length;
+            const bestSpinStrength = best.players.filter(p => 
+                p.toLowerCase().includes('chahal') || 
+                p.toLowerCase().includes('jadeja') || 
+                p.toLowerCase().includes('ashwin')
+            ).length;
+            return spinStrength > bestSpinStrength ? current : best;
+        });
+        scenarios.push({
+            scenario: '🔄 Spin-Friendly Pitch',
+            recommendedTeam: spinTeam.name,
+            reasoning: `Has the most spin options and players who excel on turning tracks.`
+        });
+
+        // Scenario 4: Pace-friendly pitch
+        const paceTeam = teams.reduce((best, current) => {
+            const paceStrength = current.players.filter(p => 
+                p.toLowerCase().includes('bumrah') || 
+                p.toLowerCase().includes('hazlewood') || 
+                p.toLowerCase().includes('archer') ||
+                p.toLowerCase().includes('kumar')
+            ).length;
+            const bestPaceStrength = best.players.filter(p => 
+                p.toLowerCase().includes('bumrah') || 
+                p.toLowerCase().includes('hazlewood') || 
+                p.toLowerCase().includes('archer') ||
+                p.toLowerCase().includes('kumar')
+            ).length;
+            return paceStrength > bestPaceStrength ? current : best;
+        });
+        scenarios.push({
+            scenario: '⚡ Pace-Friendly Pitch',
+            recommendedTeam: paceTeam.name,
+            reasoning: `Strong pace bowling attack with multiple fast bowlers who can exploit bouncy conditions.`
+        });
+
+        return scenarios;
+    }
+
+    generateOverallSummary(comparisonData, patterns) {
+        const teams = comparisonData.teams;
+        const bestTeam = teams.reduce((best, current) => 
+            current.overallRating > best.overallRating ? current : best
+        );
+        const worstTeam = teams.reduce((worst, current) => 
+            current.overallRating < worst.overallRating ? current : worst
+        );
+
+        const totalTeams = teams.length;
+        const avgRating = teams.reduce((sum, team) => sum + team.overallRating, 0) / totalTeams;
+        const ratingSpread = bestTeam.overallRating - worstTeam.overallRating;
+
+        return `Analyzed ${totalTeams} teams with an average rating of ${avgRating.toFixed(1)}/10. ${bestTeam.name} leads with ${bestTeam.overallRating}/10, while ${worstTeam.name} scores ${worstTeam.overallRating}/10. The ${ratingSpread < 2 ? 'teams are closely matched' : 'quality gap is significant'}. Key insights: ${patterns.length > 0 ? patterns[0].description : 'Teams show diverse strategies'}.`;
+    }
+
+    generateBestTeamRecommendation(comparisonData) {
         const bestTeam = comparisonData.teams.reduce((best, current) => 
             current.overallRating > best.overallRating ? current : best
         );
 
-        const recommendationContainer = document.getElementById('recommendation-content');
-        
-        let recommendationText = '';
-        
-        if (comparisonData.teams.length === 1) {
-            recommendationText = `
-                <p class="text-sm text-gray-700">Only one team uploaded. Please upload more teams for comparison.</p>
-            `;
-        } else {
-            recommendationText = `
-                <p class="text-sm font-semibold mb-2 text-gray-900">🏆 Recommended Team: ${bestTeam.name}</p>
-                <p class="text-xs text-gray-700 mb-2">Overall Rating: ${bestTeam.overallRating}/10 | Balance Score: ${bestTeam.balanceScore}/10</p>
-                <p class="text-xs text-gray-700">Captain: ${bestTeam.captain} | Vice-Captain: ${bestTeam.viceCaptain}</p>
-                <div class="mt-3 p-3 bg-gray-50 rounded text-xs border border-gray-200">
-                    <p class="font-semibold mb-1 text-gray-900">Why this team?</p>
-                    <ul class="space-y-1 text-xs text-gray-700">
-                        <li>• Best overall rating among all teams</li>
-                        <li>• Well-balanced composition</li>
-                        <li>• Strong captain/vice-captain combination</li>
-                        <li>• Optimal player distribution</li>
-                    </ul>
+        return `
+            <div class="bg-white rounded-lg p-6 border border-gray-200">
+                <!-- Team Name -->
+                <div class="text-center mb-4">
+                    <h5 class="font-bold text-2xl text-green-600 mb-1">${bestTeam.name}</h5>
+                    <p class="text-sm text-gray-600">Recommended Team</p>
                 </div>
-            `;
-        }
+                
+                <!-- Overall Rating -->
+                <div class="text-center mb-6">
+                    <div class="text-3xl font-bold text-green-600 mb-1">${bestTeam.overallRating}/10</div>
+                    <div class="text-sm text-gray-500">Overall Rating</div>
+                </div>
+                
+                <!-- Stats - Simple Layout -->
+                <div class="space-y-3 mb-6">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-semibold text-gray-600">Captain:</span>
+                        <span class="text-lg font-bold text-gray-900">${bestTeam.captain}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-semibold text-gray-600">Vice-Captain:</span>
+                        <span class="text-lg font-bold text-gray-900">${bestTeam.viceCaptain}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-semibold text-gray-600">Team Balance:</span>
+                        <span class="text-lg font-bold text-gray-900">${bestTeam.balanceScore}/10</span>
+                    </div>
+                </div>
+                
+                <!-- Why This Team Section -->
+                <div class="border-t border-gray-200 pt-4">
+                    <div class="font-semibold text-gray-900 mb-2">Why This Team?</div>
+                    <p class="text-sm text-gray-700 leading-relaxed">
+                        Best overall performance across all criteria and scenarios. Strong composition with ${bestTeam.players.length} players, 
+                        excellent balance score, and optimal captain/vice-captain combination for maximum fantasy points.
+                    </p>
+                </div>
+            </div>
+        `;
+    }
 
-        recommendationContainer.innerHTML = recommendationText;
+    getMostCommonPattern(types) {
+        const counts = {};
+        types.forEach(type => {
+            counts[type] = (counts[type] || 0) + 1;
+        });
+        return Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+    }
+
+    getCompositionInsight(avgBatsmen, avgBowlers, avgAllRounders) {
+        if (avgBatsmen > avgBowlers && avgBatsmen > avgAllRounders) {
+            return 'Batting-heavy approach dominates.';
+        } else if (avgBowlers > avgBatsmen && avgBowlers > avgAllRounders) {
+            return 'Bowling-focused strategy preferred.';
+        } else {
+            return 'Balanced approach with emphasis on all-rounders.';
+        }
+    }
+
+    generateRecommendation(comparisonData, aiAnalysis) {
+        // Legacy function - now calls comprehensive recommendation
+        this.generateComprehensiveRecommendation(comparisonData, aiAnalysis);
     }
 
     generateBasicRecommendation(comparisonData) {
@@ -1786,30 +1964,21 @@ class TabbedTeamAnalysisApp {
 
         const recommendationContainer = document.getElementById('recommendation-content');
         
-        let recommendationText = '';
-        
         if (comparisonData.teams.length === 1) {
-            recommendationText = `
-                <p class="text-sm text-gray-700">Only one team uploaded. Please upload more teams for comparison.</p>
-            `;
-        } else {
-            recommendationText = `
-                <p class="text-sm font-semibold mb-2 text-gray-900">🏆 Recommended Team: ${bestTeam.name}</p>
-                <p class="text-xs text-gray-700 mb-2">Overall Rating: ${bestTeam.overallRating}/10 | Balance Score: ${bestTeam.balanceScore}/10</p>
-                <p class="text-xs text-gray-700">Captain: ${bestTeam.captain} | Vice-Captain: ${bestTeam.viceCaptain}</p>
-                <div class="mt-3 p-3 bg-gray-50 rounded text-xs border border-gray-200">
-                    <p class="font-semibold mb-1 text-gray-900">Analysis Summary:</p>
-                    <ul class="space-y-1 text-xs text-gray-700">
-                        <li>• Highest overall rating: ${bestTeam.overallRating}/10</li>
-                        <li>• Team balance: ${bestTeam.balanceScore}/10</li>
-                        <li>• Composition: ${bestTeam.composition.batsmen}B ${bestTeam.composition.bowlers}W ${bestTeam.composition.allRounders}AR ${bestTeam.composition.wicketKeepers}WK</li>
-                        <li>• Strong leadership with ${bestTeam.captain} & ${bestTeam.viceCaptain}</li>
-                    </ul>
+            recommendationContainer.innerHTML = `
+                <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
+                    <div class="text-center">
+                        <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                        </svg>
+                        <p class="text-gray-700 font-medium">Only one team uploaded. Please upload more teams for comparison.</p>
+                    </div>
                 </div>
             `;
+        } else {
+            // Use the same comprehensive recommendation structure for consistency
+            this.generateComprehensiveRecommendation(comparisonData, null);
         }
-
-        recommendationContainer.innerHTML = recommendationText;
     }
 
     showComparisonLoading(show) {
