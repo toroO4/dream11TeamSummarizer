@@ -47,16 +47,21 @@ app.use('*', (req, res) => {
     });
 });
 
-// Start server
-app.listen(PORT, () => {
-    console.log('🏏 ===================================');
-    console.log('🏏  cricbuzz11 Team Analyzer Backend  ');
-    console.log('🏏 ===================================');
-    console.log(`✅ Server running on port ${PORT}`);
-    console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log('🏏 Ready for enhanced cricket analysis!');
-    console.log('🏏 ===================================');
-});
+// Export for Vercel
+module.exports = app;
+
+// Start server only if not in Vercel environment
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log('🏏 ===================================');
+        console.log('🏏  cricbuzz11 Team Analyzer Backend  ');
+        console.log('🏏 ===================================');
+        console.log(`✅ Server running on port ${PORT}`);
+        console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
+        console.log('🏏 Ready for enhanced cricket analysis!');
+        console.log('🏏 ===================================');
+    });
+}
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
