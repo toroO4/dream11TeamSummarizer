@@ -1298,15 +1298,28 @@ class TabbedTeamAnalysisApp {
         // Create a modal or expand the teams summary to show results
         const summaryList = document.getElementById('teams-summary-list');
         
-        summaryList.innerHTML = results.map(result => `
-            <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-                <h4 class="font-semibold text-sm text-gray-900 mb-2">${result.team}</h4>
-                ${result.error ? 
-                    `<div class="text-red-600 text-xs">${result.error}</div>` :
-                    `<div class="text-sm text-gray-700 whitespace-pre-line">${result.summary}</div>`
-                }
-            </div>
-        `).join('');
+        summaryList.innerHTML = results.map(result => {
+            if (result.error) {
+                return `
+                    <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                        <h4 class="font-semibold text-sm text-gray-900 mb-2">${result.team}</h4>
+                        <div class="text-red-600 text-xs">${result.error}</div>
+                    </div>
+                `;
+            }
+            
+            // Convert markdown headers to HTML and format the structured analysis
+            const formattedSummary = result.summary
+                .replace(/\*\*(.*?)\*\*/g, '<strong class="text-primary font-semibold">$1</strong>')
+                .replace(/\n/g, '<br>');
+            
+            return `
+                <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                    <h4 class="font-semibold text-sm text-gray-900 mb-3">${result.team}</h4>
+                    <div class="text-sm text-gray-700 space-y-2">${formattedSummary}</div>
+                </div>
+            `;
+        }).join('');
 
         this.components.toast.showSuccess('Analysis completed!');
     }

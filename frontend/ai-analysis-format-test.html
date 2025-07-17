@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Analysis Format Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .team-analysis {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+        .criterion {
+            margin: 8px 0;
+            line-height: 1.5;
+        }
+        .criterion strong {
+            color: #007bff;
+        }
+        .rating {
+            color: #28a745;
+            font-weight: bold;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Analysis Format Test - Team 2 Template</h1>
+        <p>Testing the updated AI analysis format with bold headings and Team 2 serving as the template for all teams.</p>
+        
+        <div class="test-section">
+            <h2>Test Data</h2>
+            <p>This test uses 3 sample teams to verify that Team 2's analysis structure serves as the template for all teams. The format includes:</p>
+            <ul>
+                <li><strong>Team Balance:</strong> Analysis of team composition</li>
+                <li><strong>Captaincy Choice:</strong> Captain and vice-captain analysis</li>
+                <li><strong>Match Advantage:</strong> Team's advantage for the match</li>
+                <li><strong>Venue Strategy:</strong> How team suits the venue</li>
+                <li><strong>Covariance Analysis:</strong> Player combinations and dependencies</li>
+                <li><strong>Pitch Conditions:</strong> How team suits pitch conditions</li>
+                <li><strong>Overall Rating:</strong> Comprehensive summary and recommendation</li>
+            </ul>
+            
+            <button onclick="testAnalysis()">Test AI Analysis Format</button>
+            <div id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        async function testAnalysis() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="loading">Testing AI analysis format with Team 2 as template...</div>';
+            
+            const testData = {
+                teams: [
+                    {
+                        name: "Test Team 1",
+                        players: [
+                            { name: "Virat Kohli", role: "Batsman", team: "RCB" },
+                            { name: "Rohit Sharma", role: "Batsman", team: "MI" },
+                            { name: "Jasprit Bumrah", role: "Bowler", team: "MI" },
+                            { name: "Ravindra Jadeja", role: "All-Rounder", team: "CSK" },
+                            { name: "KL Rahul", role: "Batsman", team: "LSG" },
+                            { name: "Rishabh Pant", role: "Wicket-Keeper", team: "DC" },
+                            { name: "Andre Russell", role: "All-Rounder", team: "KKR" },
+                            { name: "Rashid Khan", role: "Bowler", team: "GT" },
+                            { name: "Shubman Gill", role: "Batsman", team: "GT" },
+                            { name: "Mohammed Shami", role: "Bowler", team: "GT" },
+                            { name: "Jos Buttler", role: "Wicket-Keeper", team: "RR" }
+                        ],
+                        captain: "Virat Kohli",
+                        viceCaptain: "Rohit Sharma"
+                    },
+                    {
+                        name: "Test Team 2 (Template Team)", 
+                        players: [
+                            { name: "MS Dhoni", role: "Wicket-Keeper", team: "CSK" },
+                            { name: "David Warner", role: "Batsman", team: "DC" },
+                            { name: "Kagiso Rabada", role: "Bowler", team: "PBKS" },
+                            { name: "Ben Stokes", role: "All-Rounder", team: "CSK" },
+                            { name: "Kane Williamson", role: "Batsman", team: "GT" },
+                            { name: "Yuzvendra Chahal", role: "Bowler", team: "RR" },
+                            { name: "Hardik Pandya", role: "All-Rounder", team: "GT" },
+                            { name: "Trent Boult", role: "Bowler", team: "RR" },
+                            { name: "Faf du Plessis", role: "Batsman", team: "RCB" },
+                            { name: "Sunil Narine", role: "All-Rounder", team: "KKR" },
+                            { name: "Dinesh Karthik", role: "Wicket-Keeper", team: "RCB" }
+                        ],
+                        captain: "MS Dhoni",
+                        viceCaptain: "David Warner"
+                    },
+                    {
+                        name: "Test Team 3",
+                        players: [
+                            { name: "Rishabh Pant", role: "Wicket-Keeper", team: "DC" },
+                            { name: "Shubman Gill", role: "Batsman", team: "GT" },
+                            { name: "Jasprit Bumrah", role: "Bowler", team: "MI" },
+                            { name: "Ravindra Jadeja", role: "All-Rounder", team: "CSK" },
+                            { name: "KL Rahul", role: "Batsman", team: "LSG" },
+                            { name: "Jos Buttler", role: "Wicket-Keeper", team: "RR" },
+                            { name: "Andre Russell", role: "All-Rounder", team: "KKR" },
+                            { name: "Rashid Khan", role: "Bowler", team: "GT" },
+                            { name: "Virat Kohli", role: "Batsman", team: "RCB" },
+                            { name: "Mohammed Shami", role: "Bowler", team: "GT" },
+                            { name: "Rohit Sharma", role: "Batsman", team: "MI" }
+                        ],
+                        captain: "Rishabh Pant",
+                        viceCaptain: "Shubman Gill"
+                    }
+                ],
+                teamA: "Mumbai Indians",
+                teamB: "Chennai Super Kings", 
+                matchDate: "2025-04-15"
+            };
+            
+            try {
+                const response = await fetch('/api/analysis/multiple-teams', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(testData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayAnalysis(data.analysis);
+                } else {
+                    resultDiv.innerHTML = `<div class="error">Error: ${data.message}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">Network error: ${error.message}</div>`;
+            }
+        }
+        
+        function displayAnalysis(analysis) {
+            const resultDiv = document.getElementById('result');
+            
+            // Parse the analysis and format it properly
+            const teams = analysis.split(/\*\*Team \d+:\*\*/).filter(team => team.trim());
+            
+            let html = '<h3>AI Analysis Results:</h3>';
+            
+            teams.forEach((team, index) => {
+                if (team.trim()) {
+                    html += `<div class="team-analysis">`;
+                    html += `<h4>Team ${index + 1}:</h4>`;
+                    
+                    // Split by criteria and format each one
+                    const criteria = [
+                        '**Team Balance:**',
+                        '**Captaincy Choice:**',
+                        '**Match Advantage:**', 
+                        '**Venue Strategy:**',
+                        '**Covariance Analysis:**',
+                        '**Pitch Conditions:**',
+                        '**Overall Rating:**'
+                    ];
+                    
+                    criteria.forEach(criterion => {
+                        const pattern = new RegExp(`${criterion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\[Rating:\\s*(\\d+(?:\\.\\d+)?/5)\\]\\s*-\\s*(.*?)(?=\\n|$)`, 'i');
+                        const match = team.match(pattern);
+                        
+                        if (match) {
+                            const rating = match[1];
+                            const explanation = match[2].trim();
+                            html += `<div class="criterion">`;
+                            html += `<strong>${criterion.replace(/\*\*/g, '')}</strong> <span class="rating">[Rating: ${rating}]</span> - ${explanation}`;
+                            html += `</div>`;
+                        }
+                    });
+                    
+                    html += `</div>`;
+                }
+            });
+            
+            resultDiv.innerHTML = html;
+        }
+    </script>
+</body>
+</html> 
