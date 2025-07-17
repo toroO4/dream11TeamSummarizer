@@ -222,28 +222,30 @@ async function analyzeMultipleTeams({ teams, teamA, teamB, matchDate, venueStats
         };
     });
 
-    const prompt = `ANALYZE ${teams.length} DREAM11 TEAMS - ONLY 7 CRITERIA
+    const prompt = `ANALYZE ${teams.length} DREAM11 TEAMS - COMPREHENSIVE 7 CRITERIA ANALYSIS
 
 MATCH: ${teamA} vs ${teamB} on ${matchDate} at ${venueName || 'Unknown Venue'}
 
 ${venueInfo ? `VENUE: ${venueInfo}\n` : ''}
 
-ANALYZE EACH TEAM USING ONLY THESE 7 CRITERIA:
+ANALYZE EACH TEAM USING THESE 7 CRITERIA WITH DETAILED EXPLANATIONS:
 
 **Team Name:**
-Team Balance: [Rating: X/5] - brief explanation
-Captaincy Choice: [Rating: X/5] - brief explanation  
-Match Advantage: [Rating: X/5] - brief explanation
-Venue Strategy: [Rating: X/5] - brief explanation
-Covariance Analysis: [Rating: X/5] - brief explanation
-Pitch Conditions: [Rating: X/5] - brief explanation
-Overall Rating: [Rating: X/5] - brief explanation
+Team Balance: [Rating: X/5] - detailed explanation of team composition balance
+Captaincy Choice: [Rating: X/5] - detailed analysis of captain and vice-captain selections
+Match Advantage: [Rating: X/5] - detailed analysis of team's advantage for this specific match
+Venue Strategy: [Rating: X/5] - detailed analysis of how team composition suits the venue
+Covariance Analysis: [Rating: X/5] - detailed analysis of player combinations and dependencies
+Pitch Conditions: [Rating: X/5] - detailed analysis of how team suits the pitch conditions
+Overall Rating: [Rating: X/5] - comprehensive summary and final recommendation
 
 RULES:
-- NO numbered points
-- NO additional sections
-- ONLY the 7 criteria above for each team
-- Analyze ALL teams listed below
+- Provide DETAILED explanations for each criterion (2-3 sentences each)
+- Analyze ALL teams with equal depth and detail
+- NO numbered points or bullet lists
+- NO additional sections beyond the 7 criteria
+- Each team should have the same level of analysis detail
+- Focus on specific insights for each team
 
 TEAMS TO ANALYZE:
 
@@ -256,21 +258,21 @@ Roles: ${team.roleSummary}
 Teams: ${team.teamSummary}
 `).join('\n')}
 
-START ANALYSIS NOW.`;
+PROVIDE COMPREHENSIVE ANALYSIS FOR EACH TEAM WITH EQUAL DETAIL.`;
 
     const completion = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [
             {
                 role: "system",
-                content: "You are an IPL 2025 fantasy cricket expert. Provide ONLY the 7 criteria analysis for each team. No filler, no emojis, no additional sections. Be concise and direct."
+                content: "You are an IPL 2025 fantasy cricket expert. Provide comprehensive 7 criteria analysis for each team with detailed explanations. Each team should receive equal depth of analysis. Be thorough and specific in your explanations."
             },
             {
                 role: "user",
                 content: prompt
             }
         ],
-        max_tokens: 1500,
+        max_tokens: 2500,
         temperature: 0.6,
     });
 
