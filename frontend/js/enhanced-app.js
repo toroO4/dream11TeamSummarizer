@@ -183,7 +183,7 @@ class EnhancedCricketAnalyzerApp {
 
         try {
             console.log('Loading matches from:', `${CONSTANTS.API_BASE_URL}/recent-matches?limit=50`);
-            const response = await fetch(`${CONSTANTS.API_BASE_URL}/recent-matches?limit=50`);
+            const response = await fetch(`${CONSTANTS.API_BASE_URL}/recent-matches?limit=80`);
             console.log('Response status:', response.status);
             
             if (!response.ok) {
@@ -210,36 +210,39 @@ class EnhancedCricketAnalyzerApp {
     }
 
     displayMatches() {
-        console.log('Displaying matches. Count:', this.matches.length);
+        
         const matchesGrid = document.getElementById('matches-grid');
         if (!matchesGrid) {
             console.error('Matches grid element not found!');
             return;
         }
-
+    
         // Clear existing content
         matchesGrid.innerHTML = '';
-
+    
         if (this.matches.length === 0) {
             console.log('No matches to display, showing no matches message');
             this.showNoMatches(true);
             return;
         }
-
-        console.log('Creating match cards for:', this.matches.length, 'matches');
-        // Create match cards
-        const matchCards = MatchCard.createCards(this.matches, (matchData) => {
+    
+        // Limit to top 5 matches
+        const topMatches = this.matches.slice(0, 5);
+        console.log('Creating match cards for:', topMatches.length, 'matches (limited to top 5)');
+        
+        // Create match cards for top 5 matches only
+        const matchCards = MatchCard.createCards(topMatches, (matchData) => {
             this.handleMatchSelection(matchData);
         });
-
-        console.log('Created match cards:', matchCards.length);
+    
+        
         // Add cards to grid
         matchCards.forEach(card => {
             matchesGrid.appendChild(card);
         });
-
+    
         this.showMatchesGrid(true);
-        console.log('Match grid should now be visible');
+        console.log('Match grid should now be visible with top 5 matches');
     }
 
     // Search and Filter Methods
