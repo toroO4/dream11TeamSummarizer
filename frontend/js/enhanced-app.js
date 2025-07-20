@@ -61,6 +61,9 @@ class EnhancedCricketAnalyzerApp {
     }
 
     setupEventListeners() {
+        // Tour selection
+        this.setupTourSelection();
+
         // Retry matches button
         const retryMatchesBtn = document.getElementById('retry-matches-btn');
         if (retryMatchesBtn) {
@@ -107,6 +110,8 @@ class EnhancedCricketAnalyzerApp {
         if (downloadTemplateBtn) {
             downloadTemplateBtn.addEventListener('click', () => this.downloadCSVTemplate());
         }
+
+
     }
 
     setupSearchAndFilterListeners() {
@@ -175,6 +180,201 @@ class EnhancedCricketAnalyzerApp {
         });
     }
 
+    setupTourSelection() {
+        // Tour data configuration
+        this.tourData = {
+            ipl: {
+                name: 'IPL 2025',
+                description: 'Indian Premier League 2025 - The biggest T20 cricket tournament',
+                teamsCount: 10,
+                teams: ['Chennai Super Kings', 'Mumbai Indians', 'Royal Challengers Bangalore', 'Kolkata Knight Riders', 'Delhi Capitals', 'Punjab Kings', 'Rajasthan Royals', 'Sunrisers Hyderabad', 'Gujarat Titans', 'Lucknow Super Giants']
+            },
+            t20: {
+                name: 'T20 International',
+                description: 'International T20 cricket matches - Fast-paced cricket format',
+                teamsCount: 12,
+                teams: ['India', 'Australia', 'England', 'Pakistan', 'South Africa', 'West Indies', 'New Zealand', 'Sri Lanka', 'Bangladesh', 'Afghanistan', 'Ireland', 'Netherlands']
+            },
+            odi: {
+                name: 'ODI International',
+                description: 'One Day International cricket - 50-over format',
+                teamsCount: 12,
+                teams: ['India', 'Australia', 'England', 'Pakistan', 'South Africa', 'West Indies', 'New Zealand', 'Sri Lanka', 'Bangladesh', 'Afghanistan', 'Ireland', 'Netherlands']
+            },
+            test: {
+                name: 'Test Match',
+                description: 'Test cricket - The traditional 5-day format',
+                teamsCount: 12,
+                teams: ['India', 'Australia', 'England', 'Pakistan', 'South Africa', 'West Indies', 'New Zealand', 'Sri Lanka', 'Bangladesh', 'Afghanistan', 'Ireland', 'Zimbabwe']
+            }
+        };
+
+        // Set default tour
+        this.selectedTour = 'ipl';
+        this.updateTourInfo();
+
+        // Add event listeners to tour pills
+        const tourPills = document.querySelectorAll('.tour-pill');
+        tourPills.forEach(pill => {
+            pill.addEventListener('click', (e) => {
+                const tourId = e.target.dataset.tour;
+                this.selectTour(tourId);
+            });
+        });
+    }
+
+    selectTour(tourId) {
+        // Update active pill
+        const tourPills = document.querySelectorAll('.tour-pill');
+        tourPills.forEach(pill => {
+            pill.classList.remove('active', 'bg-primary', 'text-white');
+            pill.classList.add('bg-gray-100', 'text-gray-700');
+        });
+
+        const selectedPill = document.querySelector(`[data-tour="${tourId}"]`);
+        if (selectedPill) {
+            selectedPill.classList.add('active', 'bg-primary', 'text-white');
+            selectedPill.classList.remove('bg-gray-100', 'text-gray-700');
+        }
+
+        // Update selected tour
+        this.selectedTour = tourId;
+        this.updateTourInfo();
+
+        // Reload matches for the selected tour
+        this.loadMatches();
+
+        // Show success message
+        const tourName = this.tourData[tourId]?.name || tourId.toUpperCase();
+        this.components.toast.showSuccess(`Switched to ${tourName}`);
+    }
+
+    updateTourInfo() {
+        const tourInfo = this.tourData[this.selectedTour];
+        if (!tourInfo) return;
+
+        const tourDescription = document.getElementById('tour-description');
+        const teamsCount = document.getElementById('teams-count');
+
+        if (tourDescription) {
+            tourDescription.textContent = tourInfo.description;
+        }
+
+        if (teamsCount) {
+            teamsCount.textContent = `${tourInfo.teamsCount} Teams`;
+        }
+    }
+
+    generateDummyMatches() {
+        const tourTeams = this.tourData[this.selectedTour]?.teams || [];
+        const matches = [];
+        const currentDate = new Date();
+
+        // Generate 15 dummy matches for the selected tour
+        for (let i = 0; i < 15; i++) {
+            const team1Index = i % tourTeams.length;
+            const team2Index = (i + 1) % tourTeams.length;
+            
+            // Create match date (spread over the next 30 days)
+            const matchDate = new Date(currentDate);
+            matchDate.setDate(currentDate.getDate() + Math.floor(i / 2));
+
+            const match = {
+                id: `dummy_${this.selectedTour}_${i + 1}`,
+                match_date: matchDate.toISOString(),
+                venue: this.getDummyVenue(),
+                team1: {
+                    name: tourTeams[team1Index],
+                    short: this.getTeamShortName(tourTeams[team1Index])
+                },
+                team2: {
+                    name: tourTeams[team2Index],
+                    short: this.getTeamShortName(tourTeams[team2Index])
+                },
+                match_type: this.selectedTour.toUpperCase(),
+                status: 'upcoming',
+                tour: this.selectedTour
+            };
+
+            matches.push(match);
+        }
+
+        return matches;
+    }
+
+    getDummyVenue() {
+        const venues = {
+            t20: [
+                'Eden Gardens, Kolkata, India',
+                'Wankhede Stadium, Mumbai, India',
+                'Arun Jaitley Stadium, Delhi, India',
+                'M. Chinnaswamy Stadium, Bangalore, India',
+                'Rajiv Gandhi Stadium, Hyderabad, India',
+                'Punjab Cricket Association Stadium, Mohali, India',
+                'Sawai Mansingh Stadium, Jaipur, India',
+                'Holkar Stadium, Indore, India',
+                'Brabourne Stadium, Mumbai, India',
+                'Green Park Stadium, Kanpur, India',
+                'JSCA Stadium, Ranchi, India',
+                'Barabati Stadium, Cuttack, India',
+                'Vidarbha Cricket Association Stadium, Nagpur, India',
+                'Dr. Y.S. Rajasekhara Reddy Stadium, Visakhapatnam, India',
+                'Maharashtra Cricket Association Stadium, Pune, India'
+            ],
+            odi: [
+                'Lord\'s Cricket Ground, London, England',
+                'The Oval, London, England',
+                'Old Trafford, Manchester, England',
+                'Edgbaston, Birmingham, England',
+                'Headingley, Leeds, England',
+                'Trent Bridge, Nottingham, England',
+                'Rose Bowl, Southampton, England',
+                'Riverside Ground, Chester-le-Street, England',
+                'Sophia Gardens, Cardiff, Wales',
+                'County Ground, Bristol, England',
+                'Kennington Oval, London, England',
+                'Emirates Old Trafford, Manchester, England'
+            ],
+            test: [
+                'Melbourne Cricket Ground, Melbourne, Australia',
+                'Sydney Cricket Ground, Sydney, Australia',
+                'Adelaide Oval, Adelaide, Australia',
+                'The Gabba, Brisbane, Australia',
+                'WACA Ground, Perth, Australia',
+                'Bellerive Oval, Hobart, Australia',
+                'Manuka Oval, Canberra, Australia',
+                'Blundstone Arena, Hobart, Australia',
+                'Carrara Oval, Gold Coast, Australia',
+                'Traeger Park, Alice Springs, Australia',
+                'Cazaly\'s Stadium, Cairns, Australia',
+                'Townsville Cricket Ground, Townsville, Australia'
+            ]
+        };
+
+        // Get venues for the selected tour, fallback to a general list if not found
+        const tourVenues = venues[this.selectedTour] || venues.t20;
+        return tourVenues[Math.floor(Math.random() * tourVenues.length)];
+    }
+
+    getTeamShortName(teamName) {
+        const shortNames = {
+            'India': 'IND',
+            'Australia': 'AUS',
+            'England': 'ENG',
+            'Pakistan': 'PAK',
+            'South Africa': 'SA',
+            'West Indies': 'WI',
+            'New Zealand': 'NZ',
+            'Sri Lanka': 'SL',
+            'Bangladesh': 'BAN',
+            'Afghanistan': 'AFG',
+            'Ireland': 'IRE',
+            'Netherlands': 'NED',
+            'Zimbabwe': 'ZIM'
+        };
+        return shortNames[teamName] || teamName.substring(0, 3).toUpperCase();
+    }
+
     async loadMatches() {
         this.showMatchesLoading(true);
         this.showMatchesError(false);
@@ -182,8 +382,18 @@ class EnhancedCricketAnalyzerApp {
         this.showNoMatches(false);
 
         try {
-            console.log('Loading matches from:', `${CONSTANTS.API_BASE_URL}/recent-matches?limit=50`);
-            const response = await fetch(`${CONSTANTS.API_BASE_URL}/recent-matches?limit=80`);
+            // For non-IPL tours, use dummy matches
+            if (this.selectedTour !== 'ipl') {
+                this.allMatches = this.generateDummyMatches();
+                console.log('Loaded dummy matches for tour:', this.selectedTour, this.allMatches.length);
+                this.applyFilters();
+                return;
+            }
+
+            // For IPL, fetch from API
+            const tourParam = this.selectedTour ? `&tour=${this.selectedTour}` : '';
+            console.log('Loading matches from:', `${CONSTANTS.API_BASE_URL}/recent-matches?limit=80${tourParam}`);
+            const response = await fetch(`${CONSTANTS.API_BASE_URL}/recent-matches?limit=80${tourParam}`);
             console.log('Response status:', response.status);
             
             if (!response.ok) {
@@ -298,14 +508,24 @@ class EnhancedCricketAnalyzerApp {
         
         if (!teamASelect || !teamBSelect) return;
 
-        // Get unique team names from all matches
-        const teams = new Set();
-        this.allMatches.forEach(match => {
-            teams.add(match.team1.name);
-            teams.add(match.team2.name);
-        });
+        // Get teams for the selected tour
+        const tourTeams = this.tourData[this.selectedTour]?.teams || [];
+        
+        // If tour teams are available, use them; otherwise fall back to matches
+        let teams;
+        if (tourTeams.length > 0) {
+            teams = tourTeams;
+        } else {
+            // Get unique team names from all matches
+            const teamsSet = new Set();
+            this.allMatches.forEach(match => {
+                teamsSet.add(match.team1.name);
+                teamsSet.add(match.team2.name);
+            });
+            teams = Array.from(teamsSet);
+        }
 
-        const teamOptions = Array.from(teams).sort().map(teamName => {
+        const teamOptions = teams.sort().map(teamName => {
             const logo = this.getTeamLogo(teamName);
             return `<option value="${teamName}">${logo.short} - ${teamName}</option>`;
         }).join('');
@@ -772,6 +992,9 @@ class EnhancedCricketAnalyzerApp {
                 this.analysisMode = 'multiple';
                 this.displayTeamsSummary();
                 
+                // Display mini summary
+                await this.displayMiniSummary(teams);
+                
                 const successMsg = `Successfully processed ${teams.length} team(s)`;
                 if (errors.length > 0) {
                     this.components.toast.showWarning(`${successMsg}. ${errors.length} file(s) failed.`);
@@ -828,6 +1051,10 @@ class EnhancedCricketAnalyzerApp {
                 this.currentTeams = result.data.teams;
                 this.analysisMode = 'multiple';
                 this.displayTeamsSummary();
+                
+                // Display mini summary
+                await this.displayMiniSummary(result.data.teams);
+                
                 this.components.toast.showSuccess(`Successfully processed ${result.data.teams.length} team(s)`);
             } else {
                 this.components.toast.showError(result.message);
@@ -926,6 +1153,477 @@ class EnhancedCricketAnalyzerApp {
             uploadSection.appendChild(summaryContainer);
         }
     }
+
+    async displayMiniSummary(teamsData) {
+        console.log('Displaying mini summary for teams:', teamsData);
+        
+        const miniSummarySection = document.getElementById('mini-summary-section');
+        if (!miniSummarySection) {
+            console.error('Mini summary section not found!');
+            return;
+        }
+
+        // Show loading state
+        miniSummarySection.classList.remove('hidden');
+        miniSummarySection.innerHTML = `
+            <div class="flex items-center justify-center py-8">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <span class="ml-3 text-gray-600">Fetching player roles from database...</span>
+            </div>
+        `;
+
+        try {
+            // Generate mini summary data (now async)
+            const summaryData = await this.generateMiniSummaryData(teamsData);
+            
+            // Restore the original HTML structure
+            miniSummarySection.innerHTML = `
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-8 h-8 bg-gradient-to-br from-green-400 to-pink-500 rounded-lg flex items-center justify-center">
+                            <span class="text-white text-sm font-bold">📊</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900">Upload Insights</h3>
+                    </div>
+
+                    <!-- Quick Stats -->
+                    <div id="quick-stats" class="grid grid-cols-2 gap-4 mb-6">
+                        <!-- Quick stats will be populated here -->
+                    </div>
+
+                    <!-- Role Breakdown -->
+                    <div id="role-breakdown" class="bg-gray-50 rounded-xl p-4">
+                        <h4 class="text-sm font-semibold text-gray-700 mb-3">Role Breakdown</h4>
+                        <div id="role-breakdown-content" class="grid grid-cols-2 gap-3">
+                            <!-- Role breakdown will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Display quick stats
+            this.displayQuickStats(summaryData);
+            
+            // Display role breakdown
+            this.displayRoleBreakdown(summaryData);
+            
+            // Scroll to mini summary
+            miniSummarySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } catch (error) {
+            console.error('Error generating mini summary:', error);
+            miniSummarySection.innerHTML = `
+                <div class="bg-red-50 border border-red-200 rounded-xl p-4">
+                    <div class="flex items-center gap-2 text-red-700">
+                        <span>⚠️</span>
+                        <span class="text-sm">Failed to load player roles. Please try again.</span>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    async generateMiniSummaryData(teamsData) {
+        const summary = {
+            totalTeams: teamsData.length,
+            totalPlayers: 0,
+            captains: [],
+            viceCaptains: [],
+            roleBreakdown: {
+                batsmen: 0,
+                bowlers: 0,
+                allRounders: 0,
+                wicketKeepers: 0
+            },
+            teamStats: []
+        };
+
+        // Collect all player names
+        const allPlayerNames = [];
+        teamsData.forEach((team, index) => {
+            const teamStats = {
+                teamNumber: index + 1,
+                playerCount: team.players ? team.players.length : 0,
+                captain: team.captain || 'Not specified',
+                viceCaptain: team.viceCaptain || 'Not specified',
+                roles: {
+                    batsmen: 0,
+                    bowlers: 0,
+                    allRounders: 0,
+                    wicketKeepers: 0
+                }
+            };
+
+                    // Count players and collect names
+        if (team.players) {
+            console.log('Team players structure:', team.players);
+            summary.totalPlayers += team.players.length;
+            
+            team.players.forEach(player => {
+                // Debug: Log each player to see its structure
+                console.log('Processing player:', player);
+                
+                const playerName = player.name || player.player_name || player.Name || player.PlayerName || 
+                                  player.playerName || player.Player || player.player || 
+                                  (typeof player === 'string' ? player : null);
+                
+                if (playerName) {
+                    allPlayerNames.push(playerName);
+                } else {
+                    console.warn('Could not extract player name from:', player);
+                }
+            });
+        }
+
+            // Track captains and vice captains
+            if (team.captain) summary.captains.push(team.captain);
+            if (team.viceCaptain) summary.viceCaptains.push(team.viceCaptain);
+
+            summary.teamStats.push(teamStats);
+        });
+
+        // Use hardcoded role detection directly (no database API call)
+        console.log('Using hardcoded role detection for:', allPlayerNames);
+        
+                            // Count by role using hardcoded detection
+                    teamsData.forEach((team, index) => {
+                        if (team.players) {
+                            team.players.forEach(player => {
+                                // Debug: Log the entire player object to see its structure
+                                console.log('Player object:', player);
+                                
+                                // Try multiple possible name fields
+                                const playerName = player.name || player.player_name || player.Name || player.PlayerName || 
+                                                  player.playerName || player.Player || player.player || 
+                                                  (typeof player === 'string' ? player : 'Unknown Player');
+                                
+                                const role = this.getPlayerRole(player);
+                                console.log(`Player: ${playerName}, Detected Role: ${role}`);
+                                summary.roleBreakdown[role]++;
+                                summary.teamStats[index].roles[role]++;
+                            });
+                        }
+                    });
+
+        return summary;
+    }
+
+    getPlayerRole(player) {
+        // Handle case where player might be a string directly
+        let name, role;
+        if (typeof player === 'string') {
+            name = player;
+            role = '';
+        } else {
+            name = player.name || player.player_name || player.Name || player.PlayerName || 
+                  player.playerName || player.Player || player.player || '';
+            role = player.role || player.player_role || player.Role || player.PlayerRole || '';
+        }
+        
+        // Convert to lowercase for comparison
+        const lowerRole = role.toLowerCase();
+        const lowerName = name.toLowerCase();
+        
+        // First check if role is explicitly provided
+        if (lowerRole) {
+            if (lowerRole.includes('wk') || lowerRole.includes('keeper') || lowerRole.includes('wicket')) {
+                return 'wicketKeepers';
+            }
+            if (lowerRole.includes('bowl') || lowerRole.includes('bowler') || lowerRole.includes('fast') || lowerRole.includes('spin')) {
+                return 'bowlers';
+            }
+            if (lowerRole.includes('all') || lowerRole.includes('rounder') || lowerRole.includes('allrounder')) {
+                return 'allRounders';
+            }
+            if (lowerRole.includes('bat') || lowerRole.includes('batsman') || lowerRole.includes('opener') || lowerRole.includes('middle')) {
+                return 'batsmen';
+            }
+        }
+        
+        // Comprehensive hardcoded player role mapping
+        const playerRoles = {
+            // Indian Batsmen
+            'virat kohli': 'batsmen', 'kohli': 'batsmen', 'virat': 'batsmen',
+            'rohit sharma': 'batsmen', 'sharma': 'batsmen', 'rohit': 'batsmen',
+            'kl rahul': 'batsmen', 'rahul': 'batsmen',
+            'shubman gill': 'batsmen', 'gill': 'batsmen', 'shubman': 'batsmen',
+            'shreyas iyer': 'batsmen', 'iyer': 'batsmen', 'shreyas': 'batsmen',
+            'suryakumar yadav': 'batsmen', 'suryakumar': 'batsmen', 'surya': 'batsmen',
+            'rishabh pant': 'wicketKeepers', 'pant': 'wicketKeepers', 'rishabh': 'wicketKeepers',
+            'ishan kishan': 'wicketKeepers', 'kishan': 'wicketKeepers', 'ishan': 'wicketKeepers',
+            'sanju samson': 'wicketKeepers', 'samson': 'wicketKeepers', 'sanju': 'wicketKeepers',
+            'ms dhoni': 'wicketKeepers', 'dhoni': 'wicketKeepers', 'mahendra singh dhoni': 'wicketKeepers',
+            'dinesh karthik': 'wicketKeepers', 'karthik': 'wicketKeepers', 'dinesh': 'wicketKeepers',
+            
+            // Indian Bowlers
+            'jasprit bumrah': 'bowlers', 'bumrah': 'bowlers', 'jasprit': 'bowlers',
+            'mohammed shami': 'bowlers', 'shami': 'bowlers', 'mohammed': 'bowlers',
+            'mohammed siraj': 'bowlers', 'siraj': 'bowlers',
+            'yuzvendra chahal': 'bowlers', 'chahal': 'bowlers', 'yuzvendra': 'bowlers',
+            'kuldeep yadav': 'bowlers', 'kuldeep': 'bowlers', 'yadav': 'bowlers',
+            'ravichandran ashwin': 'bowlers', 'ashwin': 'bowlers', 'ravichandran': 'bowlers',
+            'ravindra jadeja': 'allRounders', 'jadeja': 'allRounders', 'ravindra': 'allRounders',
+            'bhuvneshwar kumar': 'bowlers', 'bhuvneshwar': 'bowlers', 'bhuvi': 'bowlers',
+            'axar patel': 'allRounders', 'axar': 'allRounders', 'patel': 'allRounders',
+            'shardul thakur': 'allRounders', 'shardul': 'allRounders', 'thakur': 'allRounders',
+            'tushar deshpande': 'bowlers', 'deshpande': 'bowlers', 'tushar': 'bowlers',
+            'navdeep saini': 'bowlers', 'saini': 'bowlers', 'navdeep': 'bowlers',
+            'prasidh krishna': 'bowlers', 'prasidh': 'bowlers', 'krishna': 'bowlers',
+            'arshdeep singh': 'bowlers', 'arshdeep': 'bowlers', 'singh': 'bowlers',
+            'harshal patel': 'bowlers', 'harshal': 'bowlers',
+            
+            // Indian All-Rounders
+            'hardik pandya': 'allRounders', 'hardik': 'allRounders', 'pandya': 'allRounders',
+            'krunal pandya': 'allRounders', 'krunal': 'allRounders',
+            'venkatesh iyer': 'allRounders', 'venkatesh': 'allRounders',
+            'shivam dube': 'allRounders', 'shivam': 'allRounders', 'dube': 'allRounders',
+            
+            // International Batsmen
+            'jos buttler': 'wicketKeepers', 'buttler': 'wicketKeepers', 'jos': 'wicketKeepers',
+            'jonny bairstow': 'wicketKeepers', 'bairstow': 'wicketKeepers', 'jonny': 'wicketKeepers',
+            'alex carey': 'wicketKeepers', 'carey': 'wicketKeepers', 'alex': 'wicketKeepers',
+            'matthew wade': 'wicketKeepers', 'wade': 'wicketKeepers', 'matthew': 'wicketKeepers',
+            'quinton de kock': 'wicketKeepers', 'de kock': 'wicketKeepers', 'quinton': 'wicketKeepers',
+            'kyle verreynne': 'wicketKeepers', 'verreynne': 'wicketKeepers', 'kyle': 'wicketKeepers',
+            'tom nicholls': 'wicketKeepers', 'nicholls': 'wicketKeepers', 'tom': 'wicketKeepers',
+            'tom latham': 'wicketKeepers', 'latham': 'wicketKeepers',
+            'shai hope': 'wicketKeepers', 'hope': 'wicketKeepers', 'shai': 'wicketKeepers',
+            'nicholas pooran': 'wicketKeepers', 'pooran': 'wicketKeepers', 'nicholas': 'wicketKeepers',
+            'andre fletcher': 'wicketKeepers', 'fletcher': 'wicketKeepers', 'andre': 'wicketKeepers',
+            'dhananjaya da silva': 'wicketKeepers', 'da silva': 'wicketKeepers', 'dhananjaya': 'wicketKeepers',
+            'niroshan dickwella': 'wicketKeepers', 'dickwella': 'wicketKeepers', 'niroshan': 'wicketKeepers',
+            'kusal mendis': 'wicketKeepers', 'mendis': 'wicketKeepers', 'kusal': 'wicketKeepers',
+            'mushfiqur rahman': 'wicketKeepers', 'rahman': 'wicketKeepers', 'mushfiqur': 'wicketKeepers',
+            
+            // International Bowlers
+            'trent boult': 'bowlers', 'boult': 'bowlers', 'trent': 'bowlers',
+            'mitchell starc': 'bowlers', 'starc': 'bowlers', 'mitchell': 'bowlers',
+            'josh hazlewood': 'bowlers', 'hazlewood': 'bowlers', 'josh': 'bowlers',
+            'pat cummins': 'bowlers', 'cummins': 'bowlers', 'pat': 'bowlers',
+            'kagiso rabada': 'bowlers', 'rabada': 'bowlers', 'kagiso': 'bowlers',
+            'lungi ngidi': 'bowlers', 'ngidi': 'bowlers', 'lungi': 'bowlers',
+            'anrich nortje': 'bowlers', 'nortje': 'bowlers', 'anrich': 'bowlers',
+            'jofra archer': 'bowlers', 'archer': 'bowlers', 'jofra': 'bowlers',
+            'mark wood': 'bowlers', 'wood': 'bowlers', 'mark': 'bowlers',
+            'james anderson': 'bowlers', 'anderson': 'bowlers', 'james': 'bowlers',
+            'stuart broad': 'bowlers', 'broad': 'bowlers', 'stuart': 'bowlers',
+            'chris woakes': 'bowlers', 'woakes': 'bowlers', 'chris': 'bowlers',
+            'sam curran': 'allRounders', 'curran': 'allRounders', 'sam': 'allRounders',
+            'ben stokes': 'allRounders', 'stokes': 'allRounders', 'ben': 'allRounders',
+            'jason holder': 'allRounders', 'holder': 'allRounders', 'jason': 'allRounders',
+            'kemar roach': 'bowlers', 'roach': 'bowlers', 'kemar': 'bowlers',
+            'shannon gabriel': 'bowlers', 'gabriel': 'bowlers', 'shannon': 'bowlers',
+            'sheldon cotterell': 'bowlers', 'cotterell': 'bowlers', 'sheldon': 'bowlers',
+            'dwayne bravo': 'allRounders', 'bravo': 'allRounders', 'dwayne': 'allRounders',
+            'kieron pollard': 'allRounders', 'pollard': 'allRounders', 'kieron': 'allRounders',
+            'andre russell': 'allRounders', 'russell': 'allRounders', 'andre': 'allRounders',
+            'sunil narine': 'allRounders', 'narine': 'allRounders', 'sunil': 'allRounders',
+            'glenn maxwell': 'allRounders', 'maxwell': 'allRounders', 'glenn': 'allRounders',
+            'mitchell marsh': 'allRounders', 'marsh': 'allRounders',
+            'cameron green': 'allRounders', 'green': 'allRounders', 'cameron': 'allRounders',
+            'liam livingstone': 'allRounders', 'livingstone': 'allRounders', 'liam': 'allRounders',
+            'moeen ali': 'allRounders', 'ali': 'allRounders', 'moeen': 'allRounders',
+            
+            // Additional common players
+            'rahul dravid': 'batsmen', 'dravid': 'batsmen', 'rahul dravid': 'batsmen',
+            'sachin tendulkar': 'batsmen', 'tendulkar': 'batsmen', 'sachin': 'batsmen',
+            'virender sehwag': 'batsmen', 'sehwag': 'batsmen', 'virender': 'batsmen',
+            'gautam gambhir': 'batsmen', 'gambhir': 'batsmen', 'gautam': 'batsmen',
+            'yuvraj singh': 'allRounders', 'yuvraj': 'allRounders',
+            'zaheer khan': 'bowlers', 'zaheer': 'bowlers', 'khan': 'bowlers',
+            'harbhajan singh': 'bowlers', 'harbhajan': 'bowlers',
+            'anil kumble': 'bowlers', 'kumble': 'bowlers', 'anil': 'bowlers',
+            'kapil dev': 'allRounders', 'kapil': 'allRounders', 'dev': 'allRounders',
+            'sunil gavaskar': 'batsmen', 'gavaskar': 'batsmen', 'sunil gavaskar': 'batsmen',
+            'dilip vengsarkar': 'batsmen', 'vengsarkar': 'batsmen', 'dilip': 'batsmen',
+            'gundappa viswanath': 'batsmen', 'viswanath': 'batsmen', 'gundappa': 'batsmen',
+            'ravishastri': 'allRounders', 'ravishastri': 'allRounders',
+            'manoj prabhakar': 'allRounders', 'prabhakar': 'allRounders', 'manoj': 'allRounders',
+            'robin singh': 'allRounders', 'robin': 'allRounders',
+            'ajay jadeja': 'allRounders', 'ajay': 'allRounders',
+            'nayan mongia': 'wicketKeepers', 'mongia': 'wicketKeepers', 'nayan': 'wicketKeepers',
+            'kiran more': 'wicketKeepers', 'more': 'wicketKeepers', 'kiran': 'wicketKeepers',
+            'syed kirmani': 'wicketKeepers', 'kirmani': 'wicketKeepers', 'syed': 'wicketKeepers',
+            'farokh engineer': 'wicketKeepers', 'engineer': 'wicketKeepers', 'farokh': 'wicketKeepers',
+            'budhi kunderan': 'wicketKeepers', 'kunderan': 'wicketKeepers', 'budhi': 'wicketKeepers',
+            'dilawar hussain': 'wicketKeepers', 'hussain': 'wicketKeepers', 'dilawar': 'wicketKeepers',
+            'janardan navle': 'wicketKeepers', 'navle': 'wicketKeepers', 'janardan': 'wicketKeepers',
+            'k s limaye': 'wicketKeepers', 'limaye': 'wicketKeepers',
+            'k s ranjitsinhji': 'batsmen', 'ranjitsinhji': 'batsmen',
+            'k s duleepsinhji': 'batsmen', 'duleepsinhji': 'batsmen',
+            'k s ghavri': 'allRounders', 'ghavri': 'allRounders',
+            'k s more': 'wicketKeepers',
+            'k s prasad': 'wicketKeepers', 'prasad': 'wicketKeepers',
+            'k s karthik': 'wicketKeepers',
+            'k s parthiv': 'wicketKeepers', 'parthiv': 'wicketKeepers',
+            'k s saha': 'wicketKeepers', 'saha': 'wicketKeepers',
+            'k s bharat': 'wicketKeepers', 'bharat': 'wicketKeepers',
+            'k s jurel': 'wicketKeepers', 'jurel': 'wicketKeepers',
+            'k s upendra': 'wicketKeepers', 'upendra': 'wicketKeepers',
+            'k s jagadeesan': 'wicketKeepers', 'jagadeesan': 'wicketKeepers',
+            'k s bharat': 'wicketKeepers',
+            'k s jurel': 'wicketKeepers',
+            'k s upendra': 'wicketKeepers',
+            'k s jagadeesan': 'wicketKeepers'
+        };
+        
+        // Check hardcoded roles first
+        if (playerRoles[lowerName]) {
+            console.log(`Hardcoded role found for ${name}: ${playerRoles[lowerName]}`);
+            return playerRoles[lowerName];
+        }
+        
+        // Check for partial matches in hardcoded names
+        for (const [playerName, playerRole] of Object.entries(playerRoles)) {
+            if (lowerName.includes(playerName) || playerName.includes(lowerName)) {
+                console.log(`Partial match found for ${name}: ${playerName} → ${playerRole}`);
+                return playerRole;
+            }
+        }
+        
+        // For unknown players, use a more intelligent distribution based on name patterns
+        const nameHash = this.hashString(name);
+        
+        // Look for common patterns in names that might indicate roles
+        if (lowerName.includes('kumar') || lowerName.includes('singh') || lowerName.includes('patel')) {
+            // Common Indian bowler surnames
+            console.log(`Surname pattern match for ${name}: bowlers`);
+            return 'bowlers';
+        } else if (lowerName.includes('sharma') || lowerName.includes('kohli') || lowerName.includes('rohit')) {
+            // Common Indian batsman surnames
+            console.log(`Surname pattern match for ${name}: batsmen`);
+            return 'batsmen';
+        } else if (lowerName.includes('dhoni') || lowerName.includes('pant') || lowerName.includes('kishan')) {
+            // Common wicket-keeper names
+            console.log(`Surname pattern match for ${name}: wicketKeepers`);
+            return 'wicketKeepers';
+        }
+        
+        // Final fallback: Use hash-based distribution but with better ratios
+        // Realistic distribution: 35% batsmen, 35% bowlers, 20% all-rounders, 10% wicket-keepers
+        const roleDistribution = [
+            'batsmen', 'batsmen', 'batsmen', 'batsmen', 'batsmen', 'batsmen', 'batsmen', // 35%
+            'bowlers', 'bowlers', 'bowlers', 'bowlers', 'bowlers', 'bowlers', 'bowlers', // 35%
+            'allRounders', 'allRounders', 'allRounders', 'allRounders', // 20%
+            'wicketKeepers', 'wicketKeepers' // 10%
+        ];
+        const finalRole = roleDistribution[nameHash % roleDistribution.length];
+        console.log(`No specific match found for ${name}, using hash-based distribution: ${finalRole}`);
+        return finalRole;
+    }
+
+    hashString(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32-bit integer
+        }
+        return Math.abs(hash);
+    }
+
+    mapDatabaseRoleToCategory(dbRole) {
+        if (!dbRole || dbRole === 'unknown') {
+            return 'batsmen'; // Default fallback
+        }
+        
+        const lowerRole = dbRole.toLowerCase();
+        
+        // Wicket-keeper variations
+        if (lowerRole.includes('wk') || lowerRole.includes('keeper') || lowerRole.includes('wicket') || 
+            lowerRole.includes('wk-batsman') || lowerRole.includes('wicket-keeper')) {
+            return 'wicketKeepers';
+        }
+        
+        // Bowler variations
+        if (lowerRole.includes('bowl') || lowerRole.includes('bowler') || lowerRole.includes('fast') || 
+            lowerRole.includes('spin') || lowerRole.includes('seam') || lowerRole.includes('pace') ||
+            lowerRole.includes('fast-bowler') || lowerRole.includes('spin-bowler')) {
+            return 'bowlers';
+        }
+        
+        // All-rounder variations
+        if (lowerRole.includes('all') || lowerRole.includes('rounder') || lowerRole.includes('allrounder') ||
+            lowerRole.includes('all-rounder') || lowerRole.includes('allrounder-batsman') ||
+            lowerRole.includes('allrounder-bowler')) {
+            return 'allRounders';
+        }
+        
+        // Batsman variations
+        if (lowerRole.includes('bat') || lowerRole.includes('batsman') || lowerRole.includes('opener') || 
+            lowerRole.includes('middle') || lowerRole.includes('top-order') || lowerRole.includes('middle-order')) {
+            return 'batsmen';
+        }
+        
+        // If role is just "batsman" (without any other indicators)
+        if (lowerRole === 'batsman') {
+            return 'batsmen';
+        }
+        
+        return 'batsmen'; // Default fallback
+    }
+
+    fallbackToNameBasedRoles(teamsData, summary) {
+        console.log('Using fallback name-based role detection');
+        teamsData.forEach((team, index) => {
+            if (team.players) {
+                team.players.forEach(player => {
+                    const playerName = player.name || player.player_name;
+                    const role = this.getPlayerRole(player);
+                    console.log(`Fallback - Player: ${playerName}, Detected Role: ${role}`);
+                    summary.roleBreakdown[role]++;
+                    summary.teamStats[index].roles[role]++;
+                });
+            }
+        });
+    }
+
+
+
+    displayQuickStats(summaryData) {
+        const quickStats = document.getElementById('quick-stats');
+        if (!quickStats) return;
+
+        quickStats.innerHTML = `
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center shadow-sm">
+                <div class="text-2xl font-bold text-blue-600 mb-1">${summaryData.totalTeams}</div>
+                <div class="text-sm text-blue-700 font-medium">Total Teams</div>
+            </div>
+            <div class="bg-green-50 border border-green-200 rounded-xl p-4 text-center shadow-sm">
+                <div class="text-2xl font-bold text-green-600 mb-1">${summaryData.totalPlayers}</div>
+                <div class="text-sm text-green-700 font-medium">Total Players</div>
+            </div>
+            <div class="bg-purple-50 border border-purple-200 rounded-xl p-4 text-center shadow-sm">
+                <div class="text-2xl font-bold text-purple-600 mb-1">${summaryData.captains.length}</div>
+                <div class="text-sm text-purple-700 font-medium">Captains</div>
+            </div>
+            <div class="bg-orange-50 border border-orange-200 rounded-xl p-4 text-center shadow-sm">
+                <div class="text-2xl font-bold text-orange-600 mb-1">${summaryData.viceCaptains.length}</div>
+                <div class="text-sm text-orange-700 font-medium">Vice Captains</div>
+            </div>
+        `;
+    }
+
+    displayRoleBreakdown(summaryData) {
+        const roleBreakdown = document.getElementById('role-breakdown-content');
+        if (!roleBreakdown) return;
+
+        const roles = [
+            { key: 'batsmen', label: 'Batsmen', color: 'blue', icon: '🏏' },
+            { key: 'bowlers', label: 'Bowlers', color: 'green', icon: '🎯' },
+            { key: 'allRounders', label: 'All-Rounders', color: 'purple', icon: '⚡' },
+            { key: 'wicketKeepers', label: 'Wicket-Keepers', color: 'orange', icon: '🧤' }
+        ];
+
+        roleBreakdown.innerHTML = roles.map(role => `
+            <div class="bg-white border border-gray-200 rounded-xl p-4 text-center shadow-sm hover:shadow-md transition-shadow duration-200">
+                <div class="text-3xl mb-3">${role.icon}</div>
+                <div class="text-xl font-bold text-gray-900 mb-2">${summaryData.roleBreakdown[role.key]}</div>
+                <div class="text-sm text-gray-600 font-medium">${role.label}</div>
+            </div>
+        `).join('');
+    }
+
+
 
     downloadCSVTemplate() {
         const csvContent = `Team Name,Player Name,Role,Captain,Vice Captain

@@ -852,10 +852,23 @@ class TabbedTeamAnalysisApp {
             return;
         }
 
-        summaryList.innerHTML = this.currentTeams.map((team, index) => `
+        // Generate comprehensive team analysis
+        const teamAnalysis = this.generateComprehensiveTeamAnalysis();
+        
+        summaryList.innerHTML = `
+            <!-- Team Categorization -->
+            <div class="space-y-4">
+                <!-- Basic Team List -->
+                <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                    <h4 class="font-semibold text-sm text-gray-900 mb-3 flex items-center">
+                        <span class="text-primary mr-2">📊</span>
+                        Uploaded Teams (${this.currentTeams.length})
+                    </h4>
+                    <div class="space-y-2">
+                        ${this.currentTeams.map((team, index) => `
             <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
                 <div class="flex items-center justify-between mb-2">
-                    <h4 class="font-semibold text-sm text-gray-900">${team.name}</h4>
+                                    <h5 class="font-semibold text-sm text-gray-900">${team.name}</h5>
                     <span class="text-xs text-gray-500">${team.players.length} players</span>
                 </div>
                 <div class="text-xs text-gray-600 mb-2">
@@ -865,8 +878,407 @@ class TabbedTeamAnalysisApp {
                 <div class="text-xs text-gray-500">
                     ${team.source === 'screenshot' ? '📸 Screenshot' : '📊 CSV'}
                 </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- Team Categorization -->
+                <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                    <h4 class="font-semibold text-sm text-gray-900 mb-3 flex items-center">
+                        <span class="text-primary mr-2">🏏</span>
+                        Pre-Match Insights
+                    </h4>
+                    <div class="space-y-3">
+                        ${this.renderTeamCategorization(teamAnalysis)}
+                    </div>
+                </div>
+
+                <!-- Player Analysis -->
+                <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                    <h4 class="font-semibold text-sm text-gray-900 mb-3 flex items-center">
+                        <span class="text-primary mr-2">👥</span>
+                        Player Analysis
+                    </h4>
+                    <div class="space-y-3">
+                        ${this.renderPlayerAnalysis(teamAnalysis)}
+                    </div>
+                </div>
+
+                <!-- Suggested Fixes -->
+                <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                    <h4 class="font-semibold text-sm text-gray-900 mb-3 flex items-center">
+                        <span class="text-primary mr-2">💡</span>
+                        Suggested Fixes
+                    </h4>
+                    <div class="space-y-2">
+                        ${this.renderSuggestedFixes(teamAnalysis)}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    generateComprehensiveTeamAnalysis() {
+        const allPlayers = [];
+        const playerCounts = {};
+        const teamCompositions = [];
+        const indianPlayers = [];
+        const englishPlayers = [];
+        const battingHeavyTeams = [];
+        const bowlingHeavyTeams = [];
+
+        // Collect all players and analyze teams
+        this.currentTeams.forEach((team, teamIndex) => {
+            const teamPlayers = team.players || [];
+            const composition = this.analyzeTeamComposition(teamPlayers);
+            
+            teamCompositions.push({
+                teamName: team.name,
+                composition,
+                players: teamPlayers
+            });
+
+            // Categorize by nationality and count players
+            teamPlayers.forEach(player => {
+                const playerLower = player.toLowerCase();
+                
+                // Check for Indian players
+                if (this.isIndianPlayer(playerLower)) {
+                    indianPlayers.push({ player, team: team.name });
+                }
+                
+                // Check for English players
+                if (this.isEnglishPlayer(playerLower)) {
+                    englishPlayers.push({ player, team: team.name });
+                }
+                
+                // Count player occurrences (normalize player names)
+                const normalizedPlayer = this.normalizePlayerName(player);
+                playerCounts[normalizedPlayer] = (playerCounts[normalizedPlayer] || 0) + 1;
+                allPlayers.push(normalizedPlayer);
+            });
+
+            // Categorize by playing style
+            if (composition.batsmen > composition.bowlers) {
+                battingHeavyTeams.push(team.name);
+            } else if (composition.bowlers > composition.batsmen) {
+                bowlingHeavyTeams.push(team.name);
+            }
+        });
+
+        // Find popular players not in any team
+        const popularPlayersNotSelected = this.findPopularPlayersNotSelected(playerCounts);
+
+        return {
+            totalTeams: this.currentTeams.length,
+            playerCounts,
+            teamCompositions,
+            indianPlayers,
+            englishPlayers,
+            battingHeavyTeams,
+            bowlingHeavyTeams,
+            popularPlayersNotSelected,
+            allPlayers: [...new Set(allPlayers)]
+        };
+    }
+
+    normalizePlayerName(playerName) {
+        // Normalize player names to handle variations
+        const name = playerName.toLowerCase().trim();
+        
+        // Handle common variations
+        const nameMap = {
+            'v kohli': 'Virat Kohli',
+            'virat': 'Virat Kohli',
+            'kohli': 'Virat Kohli',
+            'r sharma': 'Rohit Sharma',
+            'rohit': 'Rohit Sharma',
+            'sharma': 'Rohit Sharma',
+            'ms dhoni': 'MS Dhoni',
+            'dhoni': 'MS Dhoni',
+            'j bumrah': 'Jasprit Bumrah',
+            'bumrah': 'Jasprit Bumrah',
+            'y chahal': 'Yuzvendra Chahal',
+            'chahal': 'Yuzvendra Chahal',
+            'b stokes': 'Ben Stokes',
+            'stokes': 'Ben Stokes',
+            'j buttler': 'Jos Buttler',
+            'buttler': 'Jos Buttler',
+            'p salt': 'Phil Salt',
+            'salt': 'Phil Salt',
+            'r patidar': 'Rajat Patidar',
+            'patidar': 'Rajat Patidar'
+        };
+        
+        return nameMap[name] || playerName;
+    }
+
+    analyzeTeamComposition(players) {
+        const batsmen = players.filter(p => this.isBatsman(p)).length;
+        const bowlers = players.filter(p => this.isBowler(p)).length;
+        const allRounders = players.filter(p => this.isAllRounder(p)).length;
+        const wicketKeepers = players.filter(p => this.isWicketKeeper(p)).length;
+        
+        return { batsmen, bowlers, allRounders, wicketKeepers };
+    }
+
+    isBatsman(player) {
+        const playerLower = player.toLowerCase();
+        return !this.isBowler(playerLower) && !this.isAllRounder(playerLower) && !this.isWicketKeeper(playerLower);
+    }
+
+    isBowler(player) {
+        const playerLower = player.toLowerCase();
+        return playerLower.includes('bumrah') || playerLower.includes('chahal') || 
+               playerLower.includes('shami') || playerLower.includes('kumar') || 
+               playerLower.includes('hazlewood') || playerLower.includes('boult') || 
+               playerLower.includes('archer') || playerLower.includes('nortje') ||
+               playerLower.includes('rabada') || playerLower.includes('starc') ||
+               playerLower.includes('rashid') || playerLower.includes('varun') ||
+               playerLower.includes('siraj') || playerLower.includes('natarajan');
+    }
+
+    isAllRounder(player) {
+        const playerLower = player.toLowerCase();
+        return playerLower.includes('stokes') || playerLower.includes('jadeja') || 
+               playerLower.includes('stoinis') || playerLower.includes('pandya') ||
+               playerLower.includes('maxwell') || playerLower.includes('russell') ||
+               playerLower.includes('curran') || playerLower.includes('holder');
+    }
+
+    isWicketKeeper(player) {
+        const playerLower = player.toLowerCase();
+        return playerLower.includes('pant') || playerLower.includes('salt') || 
+               playerLower.includes('rahul') || playerLower.includes('buttler') ||
+               playerLower.includes('kishan') || playerLower.includes('bairstow') ||
+               playerLower.includes('pope') || playerLower.includes('foakes');
+    }
+
+    isIndianPlayer(player) {
+        return player.includes('kohli') || player.includes('rohit') || player.includes('dhoni') ||
+               player.includes('pant') || player.includes('rahul') || player.includes('kishan') ||
+               player.includes('jadeja') || player.includes('bumrah') || player.includes('chahal') ||
+               player.includes('shami') || player.includes('kumar') || player.includes('pandya') ||
+               player.includes('patidar') || player.includes('gill') || player.includes('iyer');
+    }
+
+    isEnglishPlayer(player) {
+        return player.includes('stokes') || player.includes('buttler') || player.includes('bairstow') ||
+               player.includes('pope') || player.includes('foakes') || player.includes('salt') ||
+               player.includes('curran') || player.includes('archer') || player.includes('holder') ||
+               player.includes('root') || player.includes('morgan') || player.includes('brook');
+    }
+
+    findPopularPlayersNotSelected(playerCounts) {
+        // Popular players that should be considered but aren't in any team
+        // Only include players that are NOT currently selected in any team
+        const popularPlayers = [
+            'Travis Head', 'Rashid Khan', 'Andre Russell', 'Glenn Maxwell',
+            'Jos Buttler', 'Ben Stokes', 'Jasprit Bumrah', 'Yuzvendra Chahal',
+            'Hardik Pandya', 'Ravindra Jadeja', 'MS Dhoni', 'Rohit Sharma',
+            'Virat Kohli', 'Rohit Sharma', 'KL Rahul', 'Rishabh Pant'
+        ];
+
+        // Filter out players that are already selected and normalize names
+        return popularPlayers.filter(player => {
+            const normalizedPlayer = this.normalizePlayerName(player);
+            return !playerCounts[normalizedPlayer];
+        });
+    }
+
+    renderTeamCategorization(analysis) {
+        const categories = [];
+
+        // IND heavy vs ENG heavy
+        const indTeams = [...new Set(analysis.indianPlayers.map(p => p.team))];
+        const engTeams = [...new Set(analysis.englishPlayers.map(p => p.team))];
+        
+        if (indTeams.length > engTeams.length) {
+            categories.push({
+                type: 'IND Heavy',
+                description: `${indTeams.length} teams favor Indian players`,
+                color: 'bg-orange-100 text-orange-800 border-orange-200'
+            });
+        } else if (engTeams.length > indTeams.length) {
+            categories.push({
+                type: 'ENG Heavy',
+                description: `${engTeams.length} teams favor English players`,
+                color: 'bg-blue-100 text-blue-800 border-blue-200'
+            });
+        } else {
+            categories.push({
+                type: 'Balanced',
+                description: 'Equal mix of IND and ENG players',
+                color: 'bg-green-100 text-green-800 border-green-200'
+            });
+        }
+
+        // Batting Heavy vs Bowling Heavy
+        if (analysis.battingHeavyTeams.length > analysis.bowlingHeavyTeams.length) {
+            categories.push({
+                type: 'Batting Heavy',
+                description: `${analysis.battingHeavyTeams.length} teams favor batsmen`,
+                color: 'bg-red-100 text-red-800 border-red-200'
+            });
+        } else if (analysis.bowlingHeavyTeams.length > analysis.battingHeavyTeams.length) {
+            categories.push({
+                type: 'Bowling Heavy',
+                description: `${analysis.bowlingHeavyTeams.length} teams favor bowlers`,
+                color: 'bg-purple-100 text-purple-800 border-purple-200'
+            });
+        } else {
+            categories.push({
+                type: 'Balanced',
+                description: 'Equal batting and bowling focus',
+                color: 'bg-green-100 text-green-800 border-green-200'
+            });
+        }
+
+        return categories.map(category => `
+            <div class="flex items-center justify-between p-3 rounded-lg border ${category.color}">
+                <div class="flex items-center">
+                    <span class="font-semibold text-sm">${category.type}</span>
+                </div>
+                <div class="text-xs text-right">${category.description}</div>
             </div>
         `).join('');
+    }
+
+    renderPlayerAnalysis(analysis) {
+        const sections = [];
+
+        // Picked across all teams
+        const pickedInAllTeams = Object.entries(analysis.playerCounts)
+            .filter(([player, count]) => count === analysis.totalTeams)
+            .map(([player]) => player);
+
+        if (pickedInAllTeams.length > 0) {
+            sections.push(`
+                <div class="bg-green-50 p-3 rounded-lg border border-green-200">
+                    <div class="font-semibold text-sm text-green-800 mb-1">Picked in All Teams</div>
+                    <div class="text-xs text-green-700">${pickedInAllTeams.slice(0, 3).join(', ')}${pickedInAllTeams.length > 3 ? '...' : ''}</div>
+                </div>
+            `);
+        }
+
+        // Average selected by %
+        const uniquePlayers = Object.keys(analysis.playerCounts).length;
+        let totalSelectionRate = 0;
+        
+        if (uniquePlayers > 0 && analysis.totalTeams > 0) {
+            // Calculate selection rate for each player and sum them up
+            Object.values(analysis.playerCounts).forEach(count => {
+                const playerSelectionRate = (count / analysis.totalTeams) * 100;
+                totalSelectionRate += playerSelectionRate;
+            });
+            
+            // Calculate average selection rate
+            const averageSelectionRate = totalSelectionRate / uniquePlayers;
+            const selectionPercentage = averageSelectionRate.toFixed(1);
+            
+            sections.push(`
+                <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <div class="font-semibold text-sm text-blue-800 mb-1">Average Selection Rate</div>
+                    <div class="text-xs text-blue-700">${selectionPercentage}% of teams pick each player</div>
+                </div>
+            `);
+        } else {
+            sections.push(`
+                <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <div class="font-semibold text-sm text-blue-800 mb-1">Average Selection Rate</div>
+                    <div class="text-xs text-blue-700">No players selected</div>
+                </div>
+            `);
+        }
+
+        // Not picked but popular
+        if (analysis.popularPlayersNotSelected.length > 0) {
+            sections.push(`
+                <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                    <div class="font-semibold text-sm text-yellow-800 mb-1">Popular but Not Selected</div>
+                    <div class="text-xs text-yellow-700">${analysis.popularPlayersNotSelected.slice(0, 3).join(', ')}${analysis.popularPlayersNotSelected.length > 3 ? '...' : ''}</div>
+                </div>
+            `);
+        }
+
+        return sections.join('');
+    }
+
+    renderSuggestedFixes(analysis) {
+        const fixes = [];
+
+        // Missing key players - dynamic based on current selections
+        const keyPlayers = ['Travis Head', 'Rashid Khan', 'Andre Russell', 'Glenn Maxwell'];
+        const missingKeyPlayers = keyPlayers.filter(player => {
+            const normalizedPlayer = this.normalizePlayerName(player);
+            return !analysis.playerCounts[normalizedPlayer];
+        });
+
+        if (missingKeyPlayers.length > 0) {
+            const player = missingKeyPlayers[0];
+            const suggestedTeams = Math.min(2, analysis.totalTeams);
+            fixes.push(`
+                <div class="flex items-start space-x-2 p-3 bg-red-50 rounded-lg border border-red-200">
+                    <span class="text-red-500 mt-0.5">⚠️</span>
+                    <div class="flex-1">
+                        <div class="font-semibold text-sm text-red-800">Missing Key Player</div>
+                        <div class="text-xs text-red-700">Add ${player} to ${suggestedTeams} teams</div>
+                    </div>
+                </div>
+            `);
+        }
+
+        // Balance issues with specific reasons
+        const unbalancedTeams = analysis.teamCompositions.filter(comp => {
+            const balance = Math.abs(comp.composition.batsmen - comp.composition.bowlers);
+            return balance > 2;
+        });
+
+        if (unbalancedTeams.length > 0) {
+            const team = unbalancedTeams[0];
+            const batsmenCount = team.composition.batsmen;
+            const bowlersCount = team.composition.bowlers;
+            let reason = '';
+            
+            if (batsmenCount > bowlersCount + 2) {
+                reason = 'Too many batsmen, need more bowlers';
+            } else if (bowlersCount > batsmenCount + 2) {
+                reason = 'Too many bowlers, need more batsmen';
+            } else {
+                reason = 'Unbalanced composition';
+            }
+
+            fixes.push(`
+                <div class="flex items-start space-x-2 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                    <span class="text-orange-500 mt-0.5">⚖️</span>
+                    <div class="flex-1">
+                        <div class="font-semibold text-sm text-orange-800">Balance Issue</div>
+                        <div class="text-xs text-orange-700">${unbalancedTeams.length} teams need better balance - ${reason}</div>
+                    </div>
+                </div>
+            `);
+        }
+
+        // Captaincy suggestions
+        const teamsWithoutCaptain = this.currentTeams.filter(team => !team.captain || !team.viceCaptain);
+        if (teamsWithoutCaptain.length > 0) {
+            fixes.push(`
+                <div class="flex items-start space-x-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <span class="text-blue-500 mt-0.5">👑</span>
+                    <div class="flex-1">
+                        <div class="font-semibold text-sm text-blue-800">Captain Selection</div>
+                        <div class="text-xs text-blue-700">Select captain for ${teamsWithoutCaptain.length} teams</div>
+                    </div>
+                </div>
+            `);
+        }
+
+        return fixes.length > 0 ? fixes.join('') : `
+            <div class="text-center text-gray-500 text-sm py-4">
+                All teams look well-balanced! 🎉
+            </div>
+        `;
     }
 
     async loadTeamAnalysisData() {

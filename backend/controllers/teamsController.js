@@ -196,4 +196,51 @@ exports.getRecentMatches = async (req, res) => {
     }
 };
 
+exports.getPlayerRoles = async (req, res) => {
+    try {
+        const { playerNames } = req.body;
+        
+        if (!playerNames || !Array.isArray(playerNames) || playerNames.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'playerNames array is required'
+            });
+        }
+
+        // Fetch player roles from database
+        const { data: players, error: playersError } = await supabase
+            .from('players')
+            .select('player_name, role')
+            .in('player_name', playerNames);
+
+        if (playersError) throw playersError;
+
+        // Create a map of player names to roles
+        const playerRoles = {};
+        players.forEach(player => {
+            playerRoles[player.player_name] = player.role || 'unknown';
+        });
+
+        // For players not found in database, mark as unknown
+        playerNames.forEach(name => {
+            if (!playerRoles[name]) {
+                playerRoles[name] = 'unknown';
+            }
+        });
+
+        res.json({
+            success: true,
+            data: playerRoles,
+            message: `Found roles for ${players.length} out of ${playerNames.length} players`
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch player roles',
+            error: error.message
+        });
+    }
+};
+
  

@@ -17,6 +17,48 @@
     <!-- Main Content -->
     <main class="w-full max-w-sm mx-auto px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 mobile-padding">
         
+        <!-- Tour Selection Section -->
+        <section class="bg-white rounded shadow-cricket border border-gray-200 p-4 sm:p-6 card-hover animate-fade-in">
+            <div class="flex items-center mb-3 sm:mb-4">
+                <div class="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-primary to-secondary rounded flex items-center justify-center mr-2 sm:mr-3">
+                    <span class="text-white text-xs sm:text-sm font-bold">🏆</span>
+                </div>
+                <h2 class="text-base sm:text-lg font-bold text-gray-900 font-primary">Select Tour</h2>
+            </div>
+            
+            <!-- Tour Pills -->
+            <div class="space-y-3">
+                <div class="flex flex-wrap gap-2">
+                    <button class="tour-pill active bg-primary text-white px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:bg-primary/90" data-tour="ipl">
+                        🏏 IPL 2025
+                    </button>
+                    <button class="tour-pill bg-gray-100 text-gray-700 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:bg-gray-200" data-tour="t20">
+                        ⚡ T20 International
+                    </button>
+                    <button class="tour-pill bg-gray-100 text-gray-700 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:bg-gray-200" data-tour="odi">
+                        🌍 ODI International
+                    </button>
+                    <button class="tour-pill bg-gray-100 text-gray-700 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:bg-gray-200" data-tour="test">
+                        🏛️ Test Match
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Selected Tour Info -->
+            <div id="selected-tour-info" class="mt-4 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="text-sm font-semibold text-primary">Selected Tour</h4>
+                        <p class="text-xs text-gray-600" id="tour-description">Indian Premier League 2025 - The biggest T20 cricket tournament</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-gray-500">Teams Available</div>
+                        <div class="text-sm font-semibold text-primary" id="teams-count">10 Teams</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
         <!-- Match Selection Section -->
         <section class="bg-white rounded shadow-cricket border mt-4 border-gray-200 p-4 sm:p-6 card-hover animate-fade-in">
             <div class="flex items-center mb-3 sm:mb-4">
@@ -227,6 +269,29 @@
                         </div>
                         <p class="text-primary font-semibold text-sm sm:text-base">Processing CSV...</p>
                         <p class="text-xs sm:text-sm text-gray-500 mt-1">Extracting team data</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mini Summary Section -->
+            <div id="mini-summary-section" class="hidden mt-8">
+                <div class="flex items-center mb-6">
+                    <div class="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center mr-3">
+                        <span class="text-white text-sm font-bold">📊</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-900">Upload Insights</h3>
+                </div>
+                
+                <!-- Quick Stats -->
+                <div id="quick-stats" class="grid grid-cols-2 gap-4 mb-6">
+                    <!-- Quick stats will be populated here -->
+                </div>
+
+                <!-- Role Breakdown -->
+                <div id="role-breakdown" class="bg-gray-50 rounded-xl p-4">
+                    <h4 class="text-sm font-semibold text-gray-700 mb-3">Role Breakdown</h4>
+                    <div id="role-breakdown-content" class="grid grid-cols-2 gap-3">
+                        <!-- Role breakdown will be populated here -->
                     </div>
                 </div>
             </div>

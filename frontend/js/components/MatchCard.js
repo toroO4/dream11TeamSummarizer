@@ -86,8 +86,7 @@ class MatchCard {
             </div>
             
             <div class="text-center space-y-1">
-                <div class="text-xs text-gray-700">📍 ${this.matchData.venue.name}</div>
-                <div class="text-xs text-gray-500">${this.matchData.venue.city}</div>
+                <div class="text-xs text-gray-700">📍 ${this.getVenueDisplay()}</div>
             </div>
             
             
@@ -100,6 +99,17 @@ class MatchCard {
 
         this.element = card;
         return card;
+    }
+
+    getVenueDisplay() {
+        // Handle both venue formats: string and object
+        if (typeof this.matchData.venue === 'string') {
+            return this.matchData.venue;
+        } else if (this.matchData.venue && this.matchData.venue.name) {
+            return `${this.matchData.venue.name}, ${this.matchData.venue.city}`;
+        } else {
+            return 'Venue TBD';
+        }
     }
 
     getTeamLogo(teamName) {
@@ -159,6 +169,72 @@ class MatchCard {
                 short: 'GT', 
                 image: 'https://r2.thesportsdb.com/images/media/team/badge/6qw4r71654174508.png/medium',
                 fallbackColor: 'bg-blue-400' 
+            },
+            // International teams
+            'India': { 
+                short: 'IND', 
+                image: null, 
+                fallbackColor: 'bg-blue-600' 
+            },
+            'Australia': { 
+                short: 'AUS', 
+                image: null, 
+                fallbackColor: 'bg-yellow-500' 
+            },
+            'England': { 
+                short: 'ENG', 
+                image: null, 
+                fallbackColor: 'bg-red-600' 
+            },
+            'Pakistan': { 
+                short: 'PAK', 
+                image: null, 
+                fallbackColor: 'bg-green-600' 
+            },
+            'South Africa': { 
+                short: 'SA', 
+                image: null, 
+                fallbackColor: 'bg-green-500' 
+            },
+            'West Indies': { 
+                short: 'WI', 
+                image: null, 
+                fallbackColor: 'bg-red-500' 
+            },
+            'New Zealand': { 
+                short: 'NZ', 
+                image: null, 
+                fallbackColor: 'bg-black' 
+            },
+            'Sri Lanka': { 
+                short: 'SL', 
+                image: null, 
+                fallbackColor: 'bg-blue-500' 
+            },
+            'Bangladesh': { 
+                short: 'BAN', 
+                image: null, 
+                fallbackColor: 'bg-green-700' 
+            },
+            'Afghanistan': { 
+                short: 'AFG', 
+                image: null, 
+                fallbackColor: 'bg-red-700' 
+            },
+            'Ireland': { 
+                short: 'IRE', 
+                image: null, 
+                fallbackColor: 'bg-green-800' 
+            },
+            'Netherlands': { 
+                short: 'NED', 
+                image: null, 
+                fallbackColor: 'bg-orange-500' 
+            },
+            'Zimbabwe': { 
+                short: 'ZIM', 
+                image: null, 
+                fallbackColor: 'bg-yellow-600' 
             },
         };
 

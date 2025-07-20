@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tour Selection Test - Dream11 Team Analyzer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Saira:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="frontend/js/utils/tailwind-config.js"></script>
+    <link rel="stylesheet" href="frontend/css/styles.css">
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen font-primary">
+    <!-- Header -->
+    <div id="app-header"></div>
+    <script src="frontend/js/components/AppHeader.js"></script>
+
+    <!-- Main Content -->
+    <main class="w-full max-w-sm mx-auto px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 mobile-padding">
+        
+        <!-- Tour Selection Section -->
+        <section class="bg-white rounded shadow-cricket border border-gray-200 p-4 sm:p-6 card-hover animate-fade-in">
+            <div class="flex items-center mb-3 sm:mb-4">
+                <div class="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-primary to-secondary rounded flex items-center justify-center mr-2 sm:mr-3">
+                    <span class="text-white text-xs sm:text-sm font-bold">🏆</span>
+                </div>
+                <h2 class="text-base sm:text-lg font-bold text-gray-900 font-primary">Select Tour</h2>
+            </div>
+            
+            <!-- Tour Pills -->
+            <div class="space-y-3">
+                <div class="flex flex-wrap gap-2">
+                    <button class="tour-pill active bg-primary text-white px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:bg-primary/90" data-tour="ipl">
+                        🏏 IPL 2025
+                    </button>
+                    <button class="tour-pill bg-gray-100 text-gray-700 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:bg-gray-200" data-tour="t20">
+                        ⚡ T20 International
+                    </button>
+                    <button class="tour-pill bg-gray-100 text-gray-700 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:bg-gray-200" data-tour="odi">
+                        🌍 ODI International
+                    </button>
+                    <button class="tour-pill bg-gray-100 text-gray-700 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:bg-gray-200" data-tour="test">
+                        🏛️ Test Match
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Selected Tour Info -->
+            <div id="selected-tour-info" class="mt-4 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="text-sm font-semibold text-primary">Selected Tour</h4>
+                        <p class="text-xs text-gray-600" id="tour-description">Indian Premier League 2025 - The biggest T20 cricket tournament</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-gray-500">Teams Available</div>
+                        <div class="text-sm font-semibold text-primary" id="teams-count">10 Teams</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Team Selection Demo -->
+        <section class="bg-white rounded shadow-cricket border border-gray-200 p-4 sm:p-6 card-hover animate-fade-in">
+            <div class="flex items-center mb-3 sm:mb-4">
+                <div class="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-success to-primary rounded flex items-center justify-center mr-2 sm:mr-3">
+                    <span class="text-white text-xs sm:text-sm font-bold">⚔️</span>
+                </div>
+                <h2 class="text-base sm:text-lg font-bold text-gray-900 font-primary">Select Teams</h2>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Team A</label>
+                    <select id="team-a-select" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20">
+                        <option value="">Select Team A</option>
+                        <option value="CSK">🏏 CSK - Chennai Super Kings</option>
+                        <option value="MI">🏏 MI - Mumbai Indians</option>
+                        <option value="RCB">🏏 RCB - Royal Challengers Bangalore</option>
+                        <option value="KKR">🏏 KKR - Kolkata Knight Riders</option>
+                        <option value="DC">🏏 DC - Delhi Capitals</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Team B</label>
+                    <select id="team-b-select" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20">
+                        <option value="">Select Team B</option>
+                        <option value="CSK">🏏 CSK - Chennai Super Kings</option>
+                        <option value="MI">🏏 MI - Mumbai Indians</option>
+                        <option value="RCB">🏏 RCB - Royal Challengers Bangalore</option>
+                        <option value="KKR">🏏 KKR - Kolkata Knight Riders</option>
+                        <option value="DC">🏏 DC - Delhi Capitals</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mt-4 p-3 bg-gray-50 rounded-lg">
+                <h4 class="text-sm font-semibold text-gray-700 mb-2">Tour Selection Features:</h4>
+                <ul class="text-xs text-gray-600 space-y-1">
+                    <li>• 🏆 Beautiful pill-style tour selection UI</li>
+                    <li>• 🎯 Real-time tour information updates</li>
+                    <li>• 🏏 Tour-specific team lists</li>
+                    <li>• 📱 Mobile-responsive design</li>
+                    <li>• ✨ Smooth animations and hover effects</li>
+                    <li>• 🔄 Dynamic team dropdowns based on selected tour</li>
+                    <li>• 🏟️ Format-specific venue locations</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Venue Locations Demo -->
+        <section class="bg-white rounded shadow-cricket border border-gray-200 p-4 sm:p-6 card-hover animate-fade-in">
+            <div class="flex items-center mb-3 sm:mb-4">
+                <div class="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-secondary to-primary rounded flex items-center justify-center mr-2 sm:mr-3">
+                    <span class="text-white text-xs sm:text-sm font-bold">🏟️</span>
+                </div>
+                <h2 class="text-base sm:text-lg font-bold text-gray-900 font-primary">Venue Locations</h2>
+            </div>
+            
+            <div class="space-y-3">
+                <div>
+                    <h4 class="text-sm font-semibold text-primary mb-2">⚡ T20 International</h4>
+                    <p class="text-xs text-gray-600">Indian venues: Eden Gardens, Wankhede, Arun Jaitley, Chinnaswamy, etc.</p>
+                </div>
+                <div>
+                    <h4 class="text-sm font-semibold text-secondary mb-2">🌍 ODI International</h4>
+                    <p class="text-xs text-gray-600">English venues: Lord's, The Oval, Old Trafford, Edgbaston, etc.</p>
+                </div>
+                <div>
+                    <h4 class="text-sm font-semibold text-success mb-2">🏛️ Test Match</h4>
+                    <p class="text-xs text-gray-600">Australian venues: MCG, SCG, Adelaide Oval, The Gabba, etc.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Toast Notifications -->
+        <div id="error-toast" class="hidden bg-red-500 text-white p-4 rounded-lg shadow-lg">
+            <div id="error-message"></div>
+        </div>
+        <div id="success-toast" class="hidden bg-green-500 text-white p-4 rounded-lg shadow-lg">
+            <div id="success-message"></div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="frontend/js/utils/constants.js"></script>
+    <script src="frontend/js/components/Toast.js"></script>
+    <script>
+        // Initialize Toast
+        const toast = new Toast();
+        toast.initialize('error-toast', 'error-message', 'success-toast', 'success-message');
+
+        // Tour selection functionality
+        const tourData = {
+            ipl: {
+                name: 'IPL 2025',
+                description: 'Indian Premier League 2025 - The biggest T20 cricket tournament',
+                teamsCount: 10,
+                teams: ['Chennai Super Kings', 'Mumbai Indians', 'Royal Challengers Bangalore', 'Kolkata Knight Riders', 'Delhi Capitals', 'Punjab Kings', 'Rajasthan Royals', 'Sunrisers Hyderabad', 'Gujarat Titans', 'Lucknow Super Giants']
+            },
+            t20: {
+                name: 'T20 International',
+                description: 'International T20 cricket matches - Fast-paced cricket format',
+                teamsCount: 12,
+                teams: ['India', 'Australia', 'England', 'Pakistan', 'South Africa', 'West Indies', 'New Zealand', 'Sri Lanka', 'Bangladesh', 'Afghanistan', 'Ireland', 'Netherlands']
+            },
+            odi: {
+                name: 'ODI International',
+                description: 'One Day International cricket - 50-over format',
+                teamsCount: 12,
+                teams: ['India', 'Australia', 'England', 'Pakistan', 'South Africa', 'West Indies', 'New Zealand', 'Sri Lanka', 'Bangladesh', 'Afghanistan', 'Ireland', 'Netherlands']
+            },
+            test: {
+                name: 'Test Match',
+                description: 'Test cricket - The traditional 5-day format',
+                teamsCount: 12,
+                teams: ['India', 'Australia', 'England', 'Pakistan', 'South Africa', 'West Indies', 'New Zealand', 'Sri Lanka', 'Bangladesh', 'Afghanistan', 'Ireland', 'Zimbabwe']
+            }
+        };
+
+        let selectedTour = 'ipl';
+
+        function selectTour(tourId) {
+            // Update active pill
+            const tourPills = document.querySelectorAll('.tour-pill');
+            tourPills.forEach(pill => {
+                pill.classList.remove('active', 'bg-primary', 'text-white');
+                pill.classList.add('bg-gray-100', 'text-gray-700');
+            });
+
+            const selectedPill = document.querySelector(`[data-tour="${tourId}"]`);
+            if (selectedPill) {
+                selectedPill.classList.add('active', 'bg-primary', 'text-white');
+                selectedPill.classList.remove('bg-gray-100', 'text-gray-700');
+            }
+
+            // Update selected tour
+            selectedTour = tourId;
+            updateTourInfo();
+            updateTeamSelects();
+
+            // Show success message
+            const tourName = tourData[tourId]?.name || tourId.toUpperCase();
+            toast.showSuccess(`Switched to ${tourName}`);
+        }
+
+        function updateTourInfo() {
+            const tourInfo = tourData[selectedTour];
+            if (!tourInfo) return;
+
+            const tourDescription = document.getElementById('tour-description');
+            const teamsCount = document.getElementById('teams-count');
+
+            if (tourDescription) {
+                tourDescription.textContent = tourInfo.description;
+            }
+
+            if (teamsCount) {
+                teamsCount.textContent = `${tourInfo.teamsCount} Teams`;
+            }
+        }
+
+        function updateTeamSelects() {
+            const teamASelect = document.getElementById('team-a-select');
+            const teamBSelect = document.getElementById('team-b-select');
+            
+            if (!teamASelect || !teamBSelect) return;
+
+            const tourTeams = tourData[selectedTour]?.teams || [];
+            
+            // Clear existing options
+            teamASelect.innerHTML = '<option value="">Select Team A</option>';
+            teamBSelect.innerHTML = '<option value="">Select Team B</option>';
+
+            // Add tour-specific teams
+            tourTeams.forEach(team => {
+                const optionA = document.createElement('option');
+                optionA.value = team;
+                optionA.textContent = `🏏 ${team}`;
+                teamASelect.appendChild(optionA);
+
+                const optionB = document.createElement('option');
+                optionB.value = team;
+                optionB.textContent = `🏏 ${team}`;
+                teamBSelect.appendChild(optionB);
+            });
+        }
+
+        // Add event listeners to tour pills
+        document.addEventListener('DOMContentLoaded', function() {
+            const tourPills = document.querySelectorAll('.tour-pill');
+            tourPills.forEach(pill => {
+                pill.addEventListener('click', (e) => {
+                    const tourId = e.target.dataset.tour;
+                    selectTour(tourId);
+                });
+            });
+
+            // Initialize with default tour
+            updateTourInfo();
+            updateTeamSelects();
+        });
+    </script>
+</body>
+</html> 

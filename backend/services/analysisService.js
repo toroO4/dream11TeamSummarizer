@@ -63,25 +63,25 @@ async function analyzeTeam({ players, captain, viceCaptain, teamA, teamB, matchD
 You MUST respond in EXACTLY this format with these exact headings:
 
 **Team Balance:**
-[Write 1-2 concise sentences about team composition and balance issues] [Rating: X/10]
+[Write MAX 12 words about team composition and balance] [Rating: X/10]
 
 **Captaincy Choice:**
-[Write 1-2 concise sentences about captain and vice-captain selections with recommendations] [Rating: X/10]
+[Write MAX 12 words about captain and vice-captain selections] [Rating: X/10]
 
 **Match Advantage:**
-[Write 1-2 concise sentences about team's specific advantages for this match]
+[Write MAX 12 words about team's specific advantages for this match]
 
 **Venue Strategy:**
-[Write 1-2 concise sentences about how team composition suits the venue]
+[Write MAX 12 words about how team composition suits the venue]
 
 **Covariance Analysis:**
-[Write 1-2 concise sentences about player combinations and strategic interactions] [Rating: X/10]
+[Write MAX 12 words about player combinations and interactions] [Rating: X/10]
 
 **Pitch Conditions:**
-[Write 1-2 concise sentences about how team suits the expected pitch conditions]
+[Write MAX 12 words about how team suits expected pitch conditions]
 
 **Overall Rating:**
-[Write 1-2 concise sentences with final summary and rating out of 10]
+[Write MAX 12 words with final summary and rating out of 10]
 
 TEAM DATA:
 Players: ${playerList}
@@ -92,14 +92,14 @@ Team Distribution: ${teamSummary}
 
 ${venueInfo ? 'VENUE INFO:\n' + venueInfo : ''}
 
-CRITICAL: You MUST use the exact headings above and provide 1-2 concise sentences for each section. Be direct and to the point. Add ratings [Rating: X/10] for Team Balance, Captaincy Choice, and Covariance Analysis. Do not add any other sections like "Bottom-line" or change the format.`;
+CRITICAL: You MUST use the exact headings above and provide MAX 12 words for each section. Be extremely concise and direct. Add ratings [Rating: X/10] for Team Balance, Captaincy Choice, and Covariance Analysis. Do not add any other sections like "Bottom-line" or change the format.`;
 
     const completion = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [
             {
                 role: "system",
-                content: "You are an IPL 2025 fantasy cricket expert. You MUST ALWAYS respond with the EXACT format requested: Team Balance, Captaincy Choice, Match Advantage, Venue Strategy, Covariance Analysis, Pitch Conditions, and Overall Rating. Use the exact headings provided and write 2-3 sentences for each section. Do NOT include 'Bottom-line' or any other sections. Never deviate from this format. No generic advice, no emojis, no fantasy points."
+                content: "You are an IPL 2025 fantasy cricket expert. You MUST ALWAYS respond with the EXACT format requested: Team Balance, Captaincy Choice, Match Advantage, Venue Strategy, Covariance Analysis, Pitch Conditions, and Overall Rating. Use the exact headings provided and write MAX 12 words for each section. Add ratings [Rating: X/10] for Team Balance, Captaincy Choice, and Covariance Analysis. Be extremely concise and direct. Do NOT include 'Bottom-line' or any other sections. Never deviate from this format. No generic advice, no emojis, no fantasy points."
             },
             {
                 role: "user",
@@ -167,25 +167,25 @@ async function teamSummary({ teamA, teamB, matchDate, players, captain, viceCapt
 You MUST respond in EXACTLY this format with these exact headings:
 
 **Team Balance:**
-[Write 1-2 concise sentences about team composition and balance issues] [Rating: X/10]
+[Write MAX 12 words about team composition and balance] [Rating: X/10]
 
 **Captaincy Choice:**
-[Write 1-2 concise sentences about captain and vice-captain selections with recommendations] [Rating: X/10]
+[Write MAX 12 words about captain and vice-captain selections] [Rating: X/10]
 
 **Match Advantage:**
-[Write 1-2 concise sentences about team's specific advantages for this match]
+[Write MAX 12 words about team's specific advantages for this match]
 
 **Venue Strategy:**
-[Write 1-2 concise sentences about how team composition suits the venue]
+[Write MAX 12 words about how team composition suits the venue]
 
 **Covariance Analysis:**
-[Write 1-2 concise sentences about player combinations and strategic interactions] [Rating: X/10]
+[Write MAX 12 words about player combinations and interactions] [Rating: X/10]
 
 **Pitch Conditions:**
-[Write 1-2 concise sentences about how team suits the expected pitch conditions]
+[Write MAX 12 words about how team suits expected pitch conditions]
 
 **Overall Rating:**
-[Write 1-2 concise sentences with final summary and rating out of 10]
+[Write MAX 12 words with final summary and rating out of 10]
 
 TEAM DATA:
 Players: ${players.join(', ')}
@@ -196,14 +196,14 @@ ${venueInfo ? 'VENUE INFO:\n' + venueInfo : ''}
 ${h2hInfo ? 'HEAD-TO-HEAD:\n' + h2hInfo : ''}
 ${playerPerformanceInfo ? 'PLAYER PERFORMANCE:\n' + playerPerformanceInfo : ''}
 
-CRITICAL: You MUST use the exact headings above and provide 1-2 concise sentences for each section. Be direct and to the point. Add ratings [Rating: X/10] for Team Balance, Captaincy Choice, and Covariance Analysis. Do not add any other sections like "Bottom-line" or change the format.`;
+CRITICAL: You MUST use the exact headings above and provide MAX 12 words for each section. Be extremely concise and direct. Add ratings [Rating: X/10] for Team Balance, Captaincy Choice, and Covariance Analysis. Do not add any other sections like "Bottom-line" or change the format.`;
 
   const completion = await openai.chat.completions.create({
     model: "gpt-4o",
     messages: [
       {
         role: "system",
-        content: "You are an IPL 2025 fantasy cricket expert. You MUST ALWAYS respond with the EXACT format requested: Team Balance, Captaincy Choice, Match Advantage, Venue Strategy, Covariance Analysis, Pitch Conditions, and Overall Rating. Use the exact headings provided and write 1-2 concise sentences for each section. Add ratings [Rating: X/10] for Team Balance, Captaincy Choice, and Covariance Analysis. Be direct and to the point. Do NOT include 'Bottom-line' or any other sections. Never deviate from this format. No generic advice, no emojis, no fantasy points."
+        content: "You are an IPL 2025 fantasy cricket expert. You MUST ALWAYS respond with the EXACT format requested: Team Balance, Captaincy Choice, Match Advantage, Venue Strategy, Covariance Analysis, Pitch Conditions, and Overall Rating. Use the exact headings provided and write MAX 12 words for each section. Add ratings [Rating: X/10] for Team Balance, Captaincy Choice, and Covariance Analysis. Be extremely concise and direct. Do NOT include 'Bottom-line' or any other sections. Never deviate from this format. No generic advice, no emojis, no fantasy points."
       },
       {
         role: "user",
@@ -306,28 +306,28 @@ ANALYZE EACH TEAM USING THESE 7 CRITERIA WITH DETAILED EXPLANATIONS:
 
 **Team Name:**
 **Team Balance:**
-[Write 1-2 concise sentences about team composition and balance issues] [Rating: X/10]
+[Write MAX 12 words about team composition and balance] [Rating: X/10]
 
 **Captaincy Choice:**
-[Write 1-2 concise sentences about captain and vice-captain selections with recommendations] [Rating: X/10]
+[Write MAX 12 words about captain and vice-captain selections] [Rating: X/10]
 
 **Match Advantage:**
-[Write 1-2 concise sentences about team's specific advantages for this match]
+[Write MAX 12 words about team's specific advantages for this match]
 
 **Venue Strategy:**
-[Write 1-2 concise sentences about how team composition suits the venue]
+[Write MAX 12 words about how team composition suits the venue]
 
 **Covariance Analysis:**
-[Write 1-2 concise sentences about player combinations and strategic interactions] [Rating: X/10]
+[Write MAX 12 words about player combinations and interactions] [Rating: X/10]
 
 **Pitch Conditions:**
-[Write 1-2 concise sentences about how team suits the expected pitch conditions]
+[Write MAX 12 words about how team suits expected pitch conditions]
 
 **Overall Rating:**
-[Write 1-2 concise sentences with final summary and rating out of 10]
+[Write MAX 12 words with final summary and rating out of 10]
 
 RULES:
-- Provide CONCISE explanations for each criterion (1-2 sentences each)
+- Provide MAX 12 words for each criterion
 - Analyze ALL teams with equal depth and detail
 - NO numbered points or bullet lists
 - NO additional sections beyond the 7 criteria
@@ -355,7 +355,7 @@ PROVIDE COMPREHENSIVE ANALYSIS FOR EACH TEAM WITH EQUAL DETAIL.`;
         messages: [
             {
                 role: "system",
-                content: "You are an IPL 2025 fantasy cricket expert. You MUST ALWAYS respond with the EXACT format requested: Team Balance, Captaincy Choice, Match Advantage, Venue Strategy, Covariance Analysis, Pitch Conditions, and Overall Rating. Use the exact headings provided and write 1-2 concise sentences for each section. Add ratings [Rating: X/10] for Team Balance, Captaincy Choice, and Covariance Analysis. Be direct and to the point. Do NOT include 'Bottom-line' or any other sections. Never deviate from this format. No generic advice, no emojis, no fantasy points."
+                content: "You are an IPL 2025 fantasy cricket expert. You MUST ALWAYS respond with the EXACT format requested: Team Balance, Captaincy Choice, Match Advantage, Venue Strategy, Covariance Analysis, Pitch Conditions, and Overall Rating. Use the exact headings provided and write MAX 12 words for each section. Add ratings [Rating: X/10] for Team Balance, Captaincy Choice, and Covariance Analysis. Be extremely concise and direct. Do NOT include 'Bottom-line' or any other sections. Never deviate from this format. No generic advice, no emojis, no fantasy points."
             },
             {
                 role: "user",
@@ -443,11 +443,11 @@ function ensureStructuredFormat(summary) {
         } else {
             // If no specific content found, create a generic analysis
             if (section === 'Overall Rating') {
-                sectionContent = `Overall team rating based on composition, captaincy, and match conditions. Rating: 7/10.`;
+                sectionContent = `Good team balance with solid captaincy choices. Rating: 7/10.`;
             } else if (section === 'Team Balance' || section === 'Captaincy Choice' || section === 'Covariance Analysis') {
-                sectionContent = `Analysis for ${section.toLowerCase()} based on team composition and match conditions. [Rating: 7/10]`;
+                sectionContent = `Well-balanced team with good player combinations. [Rating: 7/10]`;
             } else {
-                sectionContent = `Analysis for ${section.toLowerCase()} based on team composition and match conditions.`;
+                sectionContent = `Team suits match conditions and venue well.`;
             }
         }
         
