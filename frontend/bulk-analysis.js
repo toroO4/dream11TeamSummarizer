@@ -1,5 +1,9 @@
 // Configuration
-const API_BASE_URL = 'http://localhost:3001/api';
+// API Configuration - Auto-detect environment
+const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+const API_BASE_URL = isProduction 
+    ? `${window.location.origin}/api`  // Use same domain for production
+    : 'http://localhost:3001/api';     // Use localhost for development
 
 // DOM Elements
 let csvTab, screenshotsTab, csvSection, screenshotsSection;
