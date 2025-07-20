@@ -55,8 +55,8 @@ exports.processImage = async (req, res) => {
         let suggestion = 'Please try again with a clear, well-lit screenshot of your Dream11 team.';
         
         if (error.message.includes('OCR API key not configured')) {
-            errorMessage = 'OCR service not configured';
-            suggestion = 'Please contact support to configure the OCR service.';
+            errorMessage = 'OCR API key not configured';
+            suggestion = 'Please set OCR_API_KEY in your .env file. Get a free key from https://ocr.space/ocrapi';
         } else if (error.message.includes('No text detected')) {
             errorMessage = 'No text could be detected in the image';
             suggestion = 'Please ensure the image is clear, contains visible player names, and is not too blurry or dark.';
@@ -68,11 +68,19 @@ exports.processImage = async (req, res) => {
             suggestion = 'The OCR service is temporarily unavailable. Please try again in a few minutes.';
         }
         
+        // Always show the actual error in development
+        const showError = process.env.NODE_ENV === 'development' || error.message.includes('OCR API key not configured');
+        
         res.status(500).json({
             success: false,
             message: errorMessage,
             suggestion: suggestion,
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            error: showError ? error.message : undefined,
+            debug: process.env.NODE_ENV === 'development' ? {
+                hasOcrKey: !!process.env.OCR_API_KEY,
+                ocrKeyLength: process.env.OCR_API_KEY ? process.env.OCR_API_KEY.length : 0,
+                nodeEnv: process.env.NODE_ENV
+            } : undefined
         });
     }
 }; 
