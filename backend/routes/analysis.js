@@ -5,5 +5,6 @@ const analysisController = require('../controllers/analysisController');
 router.post('/analyze', analysisController.analyzeTeam);
 router.post('/team-summary', analysisController.teamSummary);
 router.post('/analyze-multiple', analysisController.analyzeMultipleTeams);
+router.post('/compare-teams-focused', analysisController.compareTeamsFocused);
 
 module.exports = router; 

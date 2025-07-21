@@ -1015,10 +1015,37 @@ class TabbedTeamAnalysisApp {
     }
 
     analyzeTeamComposition(players) {
-        const batsmen = players.filter(p => this.isBatsman(p)).length;
-        const bowlers = players.filter(p => this.isBowler(p)).length;
-        const allRounders = players.filter(p => this.isAllRounder(p)).length;
-        const wicketKeepers = players.filter(p => this.isWicketKeeper(p)).length;
+        // Assign each player to their primary role (priority order: WK > AR > Bowler > Batsman)
+        const roleAssignments = players.map(player => {
+            const playerLower = player.toLowerCase();
+            
+            // Check in priority order - Wicket Keeper first
+            if (this.isWicketKeeper(playerLower)) {
+                return { player, role: 'wicketKeeper' };
+            }
+            // Then All Rounder
+            else if (this.isAllRounder(playerLower)) {
+                return { player, role: 'allRounder' };
+            }
+            // Then Bowler
+            else if (this.isBowler(playerLower)) {
+                return { player, role: 'bowler' };
+            }
+            // Default to Batsman
+            else {
+                return { player, role: 'batsman' };
+            }
+        });
+        
+        // Count players in each role
+        const batsmen = roleAssignments.filter(p => p.role === 'batsman').length;
+        const bowlers = roleAssignments.filter(p => p.role === 'bowler').length;
+        const allRounders = roleAssignments.filter(p => p.role === 'allRounder').length;
+        const wicketKeepers = roleAssignments.filter(p => p.role === 'wicketKeeper').length;
+        
+        // Debug: Log the assignments to console
+        console.log('Role Assignments:', roleAssignments);
+        console.log('Counts:', { batsmen, bowlers, allRounders, wicketKeepers, total: batsmen + bowlers + allRounders + wicketKeepers });
         
         return { batsmen, bowlers, allRounders, wicketKeepers };
     }
@@ -1029,30 +1056,27 @@ class TabbedTeamAnalysisApp {
     }
 
     isBowler(player) {
-        const playerLower = player.toLowerCase();
-        return playerLower.includes('bumrah') || playerLower.includes('chahal') || 
-               playerLower.includes('shami') || playerLower.includes('kumar') || 
-               playerLower.includes('hazlewood') || playerLower.includes('boult') || 
-               playerLower.includes('archer') || playerLower.includes('nortje') ||
-               playerLower.includes('rabada') || playerLower.includes('starc') ||
-               playerLower.includes('rashid') || playerLower.includes('varun') ||
-               playerLower.includes('siraj') || playerLower.includes('natarajan');
+        return player.includes('bumrah') || player.includes('chahal') || 
+               player.includes('shami') || player.includes('kumar') || 
+               player.includes('hazlewood') || player.includes('boult') || 
+               player.includes('archer') || player.includes('nortje') ||
+               player.includes('rabada') || player.includes('starc') ||
+               player.includes('rashid') || player.includes('varun') ||
+               player.includes('siraj') || player.includes('natarajan');
     }
 
     isAllRounder(player) {
-        const playerLower = player.toLowerCase();
-        return playerLower.includes('stokes') || playerLower.includes('jadeja') || 
-               playerLower.includes('stoinis') || playerLower.includes('pandya') ||
-               playerLower.includes('maxwell') || playerLower.includes('russell') ||
-               playerLower.includes('curran') || playerLower.includes('holder');
+        return player.includes('stokes') || player.includes('jadeja') || 
+               player.includes('stoinis') || player.includes('pandya') ||
+               player.includes('maxwell') || player.includes('russell') ||
+               player.includes('curran') || player.includes('holder');
     }
 
     isWicketKeeper(player) {
-        const playerLower = player.toLowerCase();
-        return playerLower.includes('pant') || playerLower.includes('salt') || 
-               playerLower.includes('rahul') || playerLower.includes('buttler') ||
-               playerLower.includes('kishan') || playerLower.includes('bairstow') ||
-               playerLower.includes('pope') || playerLower.includes('foakes');
+        return player.includes('pant') || player.includes('salt') || 
+               player.includes('rahul') || player.includes('buttler') ||
+               player.includes('kishan') || player.includes('bairstow') ||
+               player.includes('pope') || player.includes('foakes');
     }
 
     isIndianPlayer(player) {
@@ -1932,45 +1956,34 @@ class TabbedTeamAnalysisApp {
         
         // Display player overlap analysis
         this.displayPlayerOverlap(comparisonData.teams);
+        
+        // Display summary and patterns
+        this.displaySummaryAndPatterns(comparisonData);
     }
 
     displayCompositionCharts(teams) {
         const chartContainer = document.getElementById('composition-chart');
         chartContainer.innerHTML = teams.map(team => `
-            <div class="bg-gray-50 rounded-lg p-3 sm:p-4">
-                <h5 class="font-semibold text-sm sm:text-base text-gray-900 mb-3">${team.name}</h5>
-                <div class="space-y-3 sm:space-y-4">
+            <div class="mb-6">
+                <h5 class="font-semibold text-gray-900 mb-3">${team.name}</h5>
+                <div class="space-y-2">
                     <div class="flex justify-between items-center">
-                        <span class="text-xs sm:text-sm font-medium text-gray-700">Batsmen</span>
-                        <span class="text-sm sm:text-base font-bold text-blue-600">${team.composition.batsmen}</span>
+                        <span class="text-sm text-gray-700">Batsmen</span>
+                        <span class="text-sm font-semibold text-blue-600">${team.composition.batsmen}</span>
                     </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2 sm:h-3">
-                        <div class="bg-blue-500 h-2 sm:h-3 rounded-full transition-all duration-300" style="width: ${(team.composition.batsmen / 11) * 100}%"></div>
-                    </div>
-                    
                     <div class="flex justify-between items-center">
-                        <span class="text-xs sm:text-sm font-medium text-gray-700">Bowlers</span>
-                        <span class="text-sm sm:text-base font-bold text-red-600">${team.composition.bowlers}</span>
+                        <span class="text-sm text-gray-700">Bowlers</span>
+                        <span class="text-sm font-semibold text-red-600">${team.composition.bowlers}</span>
                     </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2 sm:h-3">
-                        <div class="bg-red-500 h-2 sm:h-3 rounded-full transition-all duration-300" style="width: ${(team.composition.bowlers / 11) * 100}%"></div>
-                    </div>
-                    
                     <div class="flex justify-between items-center">
-                        <span class="text-xs sm:text-sm font-medium text-gray-700">All-Rounders</span>
-                        <span class="text-sm sm:text-base font-bold text-green-600">${team.composition.allRounders}</span>
+                        <span class="text-sm text-gray-700">All-Rounders</span>
+                        <span class="text-sm font-semibold text-green-600">${team.composition.allRounders}</span>
                     </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2 sm:h-3">
-                        <div class="bg-green-500 h-2 sm:h-3 rounded-full transition-all duration-300" style="width: ${(team.composition.allRounders / 11) * 100}%"></div>
-                    </div>
-                    
                     <div class="flex justify-between items-center">
-                        <span class="text-xs sm:text-sm font-medium text-gray-700">Wicket-Keepers</span>
-                        <span class="text-sm sm:text-base font-bold text-purple-600">${team.composition.wicketKeepers}</span>
+                        <span class="text-sm text-gray-700">Wicket-Keepers</span>
+                        <span class="text-sm font-semibold text-purple-600">${team.composition.wicketKeepers}</span>
                     </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2 sm:h-3">
-                        <div class="bg-purple-500 h-2 sm:h-3 rounded-full transition-all duration-300" style="width: ${(team.composition.wicketKeepers / 11) * 100}%"></div>
-                    </div>
+
                 </div>
             </div>
         `).join('');
@@ -1994,22 +2007,73 @@ class TabbedTeamAnalysisApp {
 
         if (commonPlayers.length === 0) {
             overlapContainer.innerHTML = `
-                <div class="text-center py-4 text-gray-500">
-                    <p class="text-sm">No common players found across teams</p>
-                </div>
+                <div class="text-sm text-gray-500">No common players found</div>
             `;
             return;
         }
 
         overlapContainer.innerHTML = `
-            <div class="text-sm text-gray-700 mb-2">Most commonly selected players:</div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div class="space-y-2">
                 ${commonPlayers.map(([player, count]) => `
-                    <div class="flex justify-between items-center bg-gray-50 rounded px-3 py-2">
-                        <span class="text-sm font-medium">${player}</span>
-                        <span class="text-xs bg-primary text-white px-2 py-1 rounded-full">${count} teams</span>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-700">${player}</span>
+                        <span class="text-sm font-semibold text-primary">${count} teams</span>
                     </div>
                 `).join('')}
+            </div>
+        `;
+    }
+
+    displaySummaryAndPatterns(comparisonData) {
+        const summaryContainer = document.getElementById('summary-patterns-content');
+        
+        // Calculate average ratings
+        const avgRating = (comparisonData.teams.reduce((sum, team) => sum + team.overallRating, 0) / comparisonData.teams.length).toFixed(1);
+        const bestTeam = comparisonData.teams.reduce((best, current) => current.overallRating > best.overallRating ? current : best);
+        const worstTeam = comparisonData.teams.reduce((worst, current) => current.overallRating < worst.overallRating ? current : worst);
+        
+        // Calculate composition averages
+        const avgBatsmen = (comparisonData.teams.reduce((sum, team) => sum + team.composition.batsmen, 0) / comparisonData.teams.length).toFixed(1);
+        const avgBowlers = (comparisonData.teams.reduce((sum, team) => sum + team.composition.bowlers, 0) / comparisonData.teams.length).toFixed(1);
+        const avgAllRounders = (comparisonData.teams.reduce((sum, team) => sum + team.composition.allRounders, 0) / comparisonData.teams.length).toFixed(1);
+        
+        // Analyze captaincy patterns
+        const captainTypes = comparisonData.teams.map(team => {
+            const captain = team.captain.toLowerCase();
+            if (this.isBatsman(captain)) return 'experienced-batsman';
+            if (this.isAllRounder(captain)) return 'all-rounder';
+            if (this.isBowler(captain)) return 'bowler';
+            return 'other';
+        });
+        
+        const mostCommonCaptainType = this.getMostCommonPattern(captainTypes);
+        
+        summaryContainer.innerHTML = `
+            <div class="space-y-4">
+                <div>
+                    <h5 class="font-semibold text-gray-900 mb-2">Summary</h5>
+                    <p class="text-sm text-gray-700">
+                        Analyzed ${comparisonData.teams.length} teams with an average rating of ${avgRating}/10. 
+                        ${bestTeam.name} leads with ${bestTeam.overallRating}/10, while ${worstTeam.name} scores ${worstTeam.overallRating}/10. 
+                        The quality gap is ${(bestTeam.overallRating - worstTeam.overallRating).toFixed(1)} points. 
+                        Key insights: Most teams prefer ${mostCommonCaptainType} as captain, indicating a conservative, stability-focused approach.
+                    </p>
+                </div>
+                
+                <div>
+                    <h5 class="font-semibold text-gray-900 mb-2">Team Patterns</h5>
+                    <div class="space-y-2">
+                        <div class="text-sm text-gray-700">
+                            <span class="font-medium">Captaincy Strategy:</span> Most teams prefer ${mostCommonCaptainType} as captain, indicating a conservative, stability-focused approach.
+                        </div>
+                        <div class="text-sm text-gray-700">
+                            <span class="font-medium">Composition Trends:</span> Average composition: ${avgBatsmen} batsmen, ${avgBowlers} bowlers, ${avgAllRounders} all-rounders. ${avgBatsmen > avgBowlers ? 'Batting-heavy approach dominates.' : 'Balanced approach preferred.'}
+                        </div>
+                        <div class="text-sm text-gray-700">
+                            <span class="font-medium">Quality Assessment:</span> Average team rating: ${avgRating}/10. ${(bestTeam.overallRating - worstTeam.overallRating) > 3 ? 'Significant quality differences exist.' : 'Teams are relatively balanced.'} Overall ${avgRating >= 7 ? 'high-quality' : avgRating >= 5 ? 'moderate-quality' : 'developing'} teams.
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
     }
@@ -2070,91 +2134,27 @@ class TabbedTeamAnalysisApp {
             return;
         }
 
-        // Analyze patterns and create comprehensive summary
-        const patterns = this.analyzeTeamPatterns(comparisonData);
+        // Generate scenario recommendations and best team only
         const scenarioRecommendations = this.generateScenarioRecommendations(comparisonData);
-        const overallSummary = this.generateOverallSummary(comparisonData, patterns);
 
         const recommendationText = `
-            <div class="space-y-6">
-                <!-- Overall Summary -->
-                <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-                    <div class="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4">
-                        <h4 class="font-bold text-xl text-white flex items-center">
-                            <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            Expert Analysis Summary
-                        </h4>
-                    </div>
-                    <div class="p-6">
-                        <div class="text-sm text-gray-700 leading-relaxed">${overallSummary}</div>
-                    </div>
-                </div>
-
-                <!-- Team Patterns -->
-                <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-                    <div class="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4">
-                        <h4 class="font-bold text-xl text-white flex items-center">
-                            <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
-                            </svg>
-                            Team Patterns & Strategies
-                        </h4>
-                    </div>
-                    <div class="p-6">
-                        <div class="space-y-4">
-                            ${patterns.map(pattern => `
-                                <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                                    <h5 class="font-semibold text-sm text-gray-900 mb-2 flex items-center">
-                                        <div class="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                                        ${pattern.title}
-                                    </h5>
-                                    <p class="text-sm text-gray-700 leading-relaxed">${pattern.description}</p>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
-
+            <div class="space-y-4">
                 <!-- Scenario Recommendations -->
-                <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-                    <div class="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4">
-                        <h4 class="font-bold text-xl text-white flex items-center">
-                            <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                            </svg>
-                            Scenario-Based Recommendations
-                        </h4>
-                    </div>
-                    <div class="p-6">
-                        <div class="space-y-4">
-                            ${scenarioRecommendations.map(scenario => `
-                                <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                                    <div class="flex justify-between items-start mb-3">
-                                        <h5 class="font-semibold text-sm text-gray-900">${scenario.scenario}</h5>
-                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800 border border-green-200">
-                                            ${scenario.recommendedTeam}
-                                        </span>
-                                    </div>
-                                    <p class="text-sm text-gray-700 leading-relaxed">${scenario.reasoning}</p>
-                                </div>
-                            `).join('')}
-                        </div>
+                <div>
+                    <h5 class="font-semibold text-gray-900 mb-2">Recommendations</h5>
+                    <div class="space-y-2">
+                        ${scenarioRecommendations.map(scenario => `
+                            <div class="text-sm text-gray-700">
+                                <span class="font-medium">${scenario.scenario}:</span> ${scenario.recommendedTeam} - ${scenario.reasoning}
+                            </div>
+                        `).join('')}
                     </div>
                 </div>
 
                 <!-- Best Overall Team -->
-                <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-                    <div class="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4">
-                        <h4 class="font-bold text-xl text-white flex items-center">
-                            <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                            </svg>
-                            Best Overall Team
-                        </h4>
-                    </div>
-                    <div class="p-6">
+                <div>
+                    <h5 class="font-semibold text-gray-900 mb-2">Best Team</h5>
+                    <div class="text-sm text-gray-700">
                         ${this.generateBestTeamRecommendation(comparisonData)}
                     </div>
                 </div>
@@ -2303,46 +2303,7 @@ class TabbedTeamAnalysisApp {
             current.overallRating > best.overallRating ? current : best
         );
 
-        return `
-            <div class="bg-white rounded-lg p-6 border border-gray-200">
-                <!-- Team Name -->
-                <div class="text-center mb-4">
-                    <h5 class="font-bold text-2xl text-green-600 mb-1">${bestTeam.name}</h5>
-                    <p class="text-sm text-gray-600">Recommended Team</p>
-                </div>
-                
-                <!-- Overall Rating -->
-                <div class="text-center mb-6">
-                    <div class="text-3xl font-bold text-green-600 mb-1">${bestTeam.overallRating}/10</div>
-                    <div class="text-sm text-gray-500">Overall Rating</div>
-                </div>
-                
-                <!-- Stats - Simple Layout -->
-                <div class="space-y-3 mb-6">
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm font-semibold text-gray-600">Captain:</span>
-                        <span class="text-lg font-bold text-gray-900">${bestTeam.captain}</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm font-semibold text-gray-600">Vice-Captain:</span>
-                        <span class="text-lg font-bold text-gray-900">${bestTeam.viceCaptain}</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm font-semibold text-gray-600">Team Balance:</span>
-                        <span class="text-lg font-bold text-gray-900">${bestTeam.balanceScore}/10</span>
-                    </div>
-                </div>
-                
-                <!-- Why This Team Section -->
-                <div class="border-t border-gray-200 pt-4">
-                    <div class="font-semibold text-gray-900 mb-2">Why This Team?</div>
-                    <p class="text-sm text-gray-700 leading-relaxed">
-                        Best overall performance across all criteria and scenarios. Strong composition with ${bestTeam.players.length} players, 
-                        excellent balance score, and optimal captain/vice-captain combination for maximum fantasy points.
-                    </p>
-                </div>
-            </div>
-        `;
+        return `${bestTeam.name} (${bestTeam.overallRating}/10) - Best overall performance with ${bestTeam.players.length} players, balance score ${bestTeam.balanceScore}/10, captain ${bestTeam.captain}, vice-captain ${bestTeam.viceCaptain}.`;
     }
 
     getMostCommonPattern(types) {

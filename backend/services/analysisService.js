@@ -547,4 +547,163 @@ function cleanAnalysisResponse(analysis, teamsData) {
     return formattedAnalysis.trim();
 }
 
-module.exports = { analyzeTeam, teamSummary, analyzeMultipleTeams }; 
+// New function for focused team comparison
+function generateFocusedTeamComparison(teams) {
+    if (!teams || teams.length < 2) {
+        return { success: false, message: 'At least 2 teams required for comparison' };
+    }
+
+    // Extract player names from all teams
+    const teamPlayerData = teams.map((team, teamIndex) => {
+        let players = [];
+        if (Array.isArray(team.players)) {
+            if (typeof team.players[0] === 'object') {
+                players = team.players.map(p => p.name || p);
+            } else {
+                players = team.players;
+            }
+        } else if (typeof team.players === 'string') {
+            players = team.players.split(',').map(p => p.trim());
+        }
+        
+        return {
+            teamIndex: teamIndex + 1,
+            teamName: team.name || `Team ${teamIndex + 1}`,
+            players: players,
+            captain: team.captain || 'Not specified',
+            viceCaptain: team.viceCaptain || 'Not specified'
+        };
+    });
+
+    // For 2 teams: Show common players vs differentials
+    if (teams.length === 2) {
+        const team1 = teamPlayerData[0];
+        const team2 = teamPlayerData[1];
+        
+        const team1Players = new Set(team1.players);
+        const team2Players = new Set(team2.players);
+        
+        // Common players
+        const commonPlayers = [...team1Players].filter(player => team2Players.has(player));
+        
+        // Team 1 differentials (unique to team 1)
+        const team1Differentials = [...team1Players].filter(player => !team2Players.has(player));
+        
+        // Team 2 differentials (unique to team 2)
+        const team2Differentials = [...team2Players].filter(player => !team1Players.has(player));
+
+        return {
+            success: true,
+            comparisonType: 'two-teams',
+            totalTeams: 2,
+            commonPlayers: {
+                count: commonPlayers.length,
+                players: commonPlayers,
+                percentage: Math.round((commonPlayers.length / 11) * 100)
+            },
+            differentials: {
+                team1: {
+                    teamName: team1.teamName,
+                    count: team1Differentials.length,
+                    players: team1Differentials,
+                    captain: team1.captain,
+                    viceCaptain: team1.viceCaptain
+                },
+                team2: {
+                    teamName: team2.teamName,
+                    count: team2Differentials.length,
+                    players: team2Differentials,
+                    captain: team2.captain,
+                    viceCaptain: team2.viceCaptain
+                }
+            },
+            overlapPercentage: Math.round((commonPlayers.length / 11) * 100)
+        };
+    }
+    
+    // For multiple teams: Show player frequency analysis
+    else {
+        // Count how many teams each player appears in
+        const playerFrequency = {};
+        const playerTeamMapping = {};
+        
+        teamPlayerData.forEach(team => {
+            team.players.forEach(player => {
+                if (!playerFrequency[player]) {
+                    playerFrequency[player] = 0;
+                    playerTeamMapping[player] = [];
+                }
+                playerFrequency[player]++;
+                playerTeamMapping[player].push(team.teamIndex);
+            });
+        });
+
+        // Sort players by frequency (most common first)
+        const sortedPlayers = Object.entries(playerFrequency)
+            .sort(([,a], [,b]) => b - a)
+            .map(([player, frequency]) => ({
+                player,
+                frequency,
+                teamNumbers: playerTeamMapping[player].sort((a, b) => a - b),
+                percentage: Math.round((frequency / teams.length) * 100)
+            }));
+
+        // Categorize players
+        const mostCommon = sortedPlayers.filter(p => p.frequency > teams.length / 2); // Appears in more than 50% of teams
+        const moderatelyCommon = sortedPlayers.filter(p => p.frequency > 1 && p.frequency <= teams.length / 2);
+        const unique = sortedPlayers.filter(p => p.frequency === 1);
+
+        // Captain and Vice-Captain analysis
+        const captainFrequency = {};
+        const viceCaptainFrequency = {};
+        
+        teamPlayerData.forEach(team => {
+            if (team.captain && team.captain !== 'Not specified') {
+                captainFrequency[team.captain] = (captainFrequency[team.captain] || 0) + 1;
+            }
+            if (team.viceCaptain && team.viceCaptain !== 'Not specified') {
+                viceCaptainFrequency[team.viceCaptain] = (viceCaptainFrequency[team.viceCaptain] || 0) + 1;
+            }
+        });
+
+        const popularCaptains = Object.entries(captainFrequency)
+            .sort(([,a], [,b]) => b - a)
+            .map(([player, count]) => ({
+                player,
+                count,
+                percentage: Math.round((count / teams.length) * 100)
+            }));
+
+        const popularViceCaptains = Object.entries(viceCaptainFrequency)
+            .sort(([,a], [,b]) => b - a)
+            .map(([player, count]) => ({
+                player,
+                count,
+                percentage: Math.round((count / teams.length) * 100)
+            }));
+
+        return {
+            success: true,
+            comparisonType: 'multiple-teams',
+            totalTeams: teams.length,
+            playerFrequency: {
+                mostCommon: mostCommon.slice(0, 10), // Top 10 most common
+                moderatelyCommon: moderatelyCommon.slice(0, 15), // Top 15 moderately common
+                unique: unique.slice(0, 20), // Top 20 unique players
+                allPlayers: sortedPlayers
+            },
+            captaincyAnalysis: {
+                popularCaptains: popularCaptains.slice(0, 5),
+                popularViceCaptains: popularViceCaptains.slice(0, 5)
+            },
+            teamDetails: teamPlayerData
+        };
+    }
+}
+
+module.exports = {
+    analyzeTeam,
+    teamSummary,
+    analyzeMultipleTeams,
+    generateFocusedTeamComparison
+}; 

@@ -1,4 +1,4 @@
-const { analyzeTeam, teamSummary, analyzeMultipleTeams } = require('../services/analysisService');
+const { analyzeTeam, teamSummary, analyzeMultipleTeams, generateFocusedTeamComparison } = require('../services/analysisService');
 
 exports.analyzeTeam = async (req, res) => {
     try {
@@ -33,5 +33,18 @@ exports.analyzeMultipleTeams = async (req, res) => {
         res.json(result);
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to analyze multiple teams', error: error.message });
+    }
+};
+
+exports.compareTeamsFocused = async (req, res) => {
+    try {
+        const { teams } = req.body;
+        const result = generateFocusedTeamComparison(teams);
+        if (!result.success) {
+            return res.status(400).json(result);
+        }
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to compare teams', error: error.message });
     }
 }; 

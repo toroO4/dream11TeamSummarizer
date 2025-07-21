@@ -1,103 +1,5 @@
-const axios = require('axios');
-const FormData = require('form-data');
-const supabase = require('./supabaseClient');
-
-async function processImageWithOCR(imageBuffer) {
-    if (!process.env.OCR_API_KEY || process.env.OCR_API_KEY === 'your_ocr_space_api_key_here') {
-        throw new Error('OCR API key not configured. Please set OCR_API_KEY in your .env file. Get a free key from https://ocr.space/ocrapi');
-    }
-    
-    try {
-        // Try multiple OCR engines for better results
-        const engines = [1, 2, 3]; // OCR engines: 1=Fast, 2=Accurate, 3=Best
-        let bestResult = null;
-        let bestText = '';
-        
-        for (const engine of engines) {
-            try {
-                console.log(`Trying OCR engine ${engine}...`);
-                
-                const formData = new FormData();
-                formData.append('file', imageBuffer, {
-                    filename: 'image.jpg',
-                    contentType: 'image/jpeg',
-                });
-                formData.append('apikey', process.env.OCR_API_KEY);
-                formData.append('language', 'eng');
-                formData.append('OCREngine', engine.toString());
-                formData.append('detectOrientation', 'true');
-                formData.append('isTable', 'false');
-                formData.append('scale', 'true');
-                formData.append('filetype', 'jpg');
-                formData.append('isOverlayRequired', 'false');
-                formData.append('isCreateSearchablePdf', 'false');
-                formData.append('isSearchablePdfHideTextLayer', 'false');
-                
-                const response = await axios.post('https://api.ocr.space/parse/image', formData, {
-                    headers: {
-                        ...formData.getHeaders(),
-                    },
-                    timeout: 20000, // Increased timeout
-                    maxRedirects: 3,
-                    validateStatus: function (status) {
-                        return status < 500;
-                    }
-                });
-                
-                if (response.data && response.data.ParsedResults && response.data.ParsedResults.length > 0) {
-                    const extractedText = response.data.ParsedResults[0].ParsedText;
-                    const confidence = response.data.ParsedResults[0].TextOverlay?.Lines?.length || 0;
-                    
-                    console.log(`Engine ${engine} extracted ${extractedText.length} characters with ${confidence} lines`);
-                    
-                    // Keep the result with more text or better confidence
-                    if (extractedText.length > bestText.length || (extractedText.length === bestText.length && confidence > (bestResult?.confidence || 0))) {
-                        bestText = extractedText;
-                        bestResult = response.data.ParsedResults[0];
-                    }
-                }
-                
-                // If we got a good result, we can stop trying other engines
-                if (bestText.length > 100) {
-                    console.log(`Good result found with engine ${engine}, stopping...`);
-                    break;
-                }
-                
-            } catch (engineError) {
-                console.warn(`Engine ${engine} failed:`, engineError.message);
-                continue; // Try next engine
-            }
-        }
-        
-        if (bestText && bestText.trim().length > 0) {
-            console.log(`Best OCR result: ${bestText.length} characters extracted`);
-            return bestText;
-        } else {
-            throw new Error('No text detected in the uploaded image. Please ensure the image is clear and contains visible player names.');
-        }
-        
-    } catch (error) {
-        const isNetworkError = 
-            error.code === 'ETIMEDOUT' || 
-            error.code === 'ECONNABORTED' || 
-            error.code === 'ENOTFOUND' ||
-            error.code === 'ECONNREFUSED' ||
-            error.message.includes('timeout') || 
-            error.message.includes('ETIMEDOUT') ||
-            error.message.includes('network') ||
-            error.message.includes('connect');
-            
-        if (isNetworkError) {
-            throw new Error('Unable to connect to OCR service. Please check your internet connection and try again.');
-        }
-        
-        if (error.response && error.response.data && error.response.data.ErrorMessage) {
-            throw new Error(`OCR service error: ${error.response.data.ErrorMessage}`);
-        }
-        
-        throw error;
-    }
-}
+// Standalone test for OCR captain/vice captain detection
+// This tests the parsing logic without requiring external dependencies
 
 function parseTeamDataFromOCRText(ocrText) {
     console.log('Raw OCR Text:', ocrText);
@@ -301,52 +203,6 @@ function parseTeamDataFromOCRText(ocrText) {
         }
     }
     
-    // Third pass: If still not enough, look for single words that could be surnames
-    if (finalPlayers.length < 8) {
-        console.log('Still not enough players, trying surname detection...');
-        
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].trim();
-            
-            if (finalPlayers.some(player => 
-                player.toLowerCase().includes(line.toLowerCase()) || 
-                line.toLowerCase().includes(player.toLowerCase())
-            )) continue;
-            
-            // Look for common cricket player surname patterns
-            const commonSurnames = [
-                'kohli', 'sharma', 'dhoni', 'bumrah', 'jadeja', 'rahul', 'pandya', 'ashwin', 'chahal', 'kumar',
-                'singh', 'patel', 'khan', 'ahmed', 'ali', 'malik', 'yadav', 'verma', 'reddy', 'naik',
-                'gill', 'iyer', 'pant', 'kishan', 'gaikwad', 'jaiswal', 'tripathi', 'samson', 'buttler',
-                'warner', 'smith', 'maxwell', 'starc', 'cummins', 'hazlewood', 'lyon', 'carey', 'marsh'
-            ];
-            
-            const isCommonSurname = commonSurnames.some(surname => 
-                line.toLowerCase().includes(surname.toLowerCase())
-            );
-            
-            const couldBeSurname = (
-                line.length >= 3 && 
-                line.length <= 15 && 
-                /^[A-Za-z]+$/.test(line) &&
-                !/^(CSK|MI|RCB|KKR|DC|PBKS|RR|SRH|GT|LSG|BATTER|BOWLER|WICKET|KEEPER|ALL|ROUNDER|DREAM11|TEAM|MATCH|SAVE|EDIT|CONFIRM|SUBMIT|PREVIEW|CREDITS|REMAINING|BALANCE|TOTAL|RUNS|WICKETS|OVERS|EXTRAS|BATTING|BOWLING|FIELDING)$/i.test(line) &&
-                !/^\d+$/.test(line) &&
-                !/^\d+\.\d+$/.test(line) &&
-                !/^\d+\s*pts?$/i.test(line) &&
-                (isCommonSurname || line.length >= 4)
-            );
-            
-            if (couldBeSurname) {
-                const cleanName = line.trim();
-                if (cleanName.length >= 3 && !finalPlayers.includes(cleanName)) {
-                    finalPlayers.push(cleanName);
-                    console.log('Added player via surname detection:', cleanName);
-                    if (finalPlayers.length >= 11) break;
-                }
-            }
-        }
-    }
-    
     // Limit to 11 players and ensure we have captain/vice-captain
     finalPlayers = finalPlayers.slice(0, 11);
     
@@ -365,56 +221,56 @@ function parseTeamDataFromOCRText(ocrText) {
         }
     }
     
-            // Additional pass: Look for captain/vice-captain indicators in the raw text
-        if (!captain || !viceCaptain) {
-            console.log('Performing additional captain/vice-captain detection...');
+    // Additional pass: Look for captain/vice-captain indicators in the raw text
+    if (!captain || !viceCaptain) {
+        console.log('Performing additional captain/vice-captain detection...');
+        
+        // Look for common Dream11 UI patterns where captain/vice-captain info is displayed
+        const lines = ocrText.split('\n');
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].toLowerCase().trim();
             
-            // Look for common Dream11 UI patterns where captain/vice-captain info is displayed
-            const lines = ocrText.split('\n');
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].toLowerCase().trim();
-                
-                // Look for lines that contain captain/vice-captain information
-                if (line.includes('captain') || line.includes('(c)') || line.includes('[c]')) {
-                    console.log('Found captain indicator in line:', lines[i]);
-                    // Try to extract player name from surrounding context
-                    if (i > 0 && i < lines.length - 1) {
-                        const prevLine = lines[i - 1].trim();
-                        const nextLine = lines[i + 1].trim();
-                        
-                        // Check if previous or next line contains a player name
-                        const potentialCaptain = finalPlayers.find(player => 
-                            prevLine.includes(player.toLowerCase()) || 
-                            nextLine.includes(player.toLowerCase())
-                        );
-                        
-                        if (potentialCaptain && !captain) {
-                            captain = potentialCaptain;
-                            console.log('Found captain from context:', captain);
-                        }
-                    }
-                }
-                
-                if (line.includes('vice') || line.includes('(vc)') || line.includes('[vc]')) {
-                    console.log('Found vice-captain indicator in line:', lines[i]);
-                    // Try to extract player name from surrounding context
-                    if (i > 0 && i < lines.length - 1) {
-                        const prevLine = lines[i - 1].trim();
-                        const nextLine = lines[i + 1].trim();
-                        
-                        // Check if previous or next line contains a player name
-                        const potentialViceCaptain = finalPlayers.find(player => 
-                            prevLine.includes(player.toLowerCase()) || 
-                            nextLine.includes(player.toLowerCase())
-                        );
-                        
-                        if (potentialViceCaptain && !viceCaptain) {
-                            viceCaptain = potentialViceCaptain;
-                            console.log('Found vice-captain from context:', viceCaptain);
-                        }
+            // Look for lines that contain captain/vice-captain information
+            if (line.includes('captain') || line.includes('(c)') || line.includes('[c]')) {
+                console.log('Found captain indicator in line:', lines[i]);
+                // Try to extract player name from surrounding context
+                if (i > 0 && i < lines.length - 1) {
+                    const prevLine = lines[i - 1].trim();
+                    const nextLine = lines[i + 1].trim();
+                    
+                    // Check if previous or next line contains a player name
+                    const potentialCaptain = finalPlayers.find(player => 
+                        prevLine.includes(player.toLowerCase()) || 
+                        nextLine.includes(player.toLowerCase())
+                    );
+                    
+                    if (potentialCaptain && !captain) {
+                        captain = potentialCaptain;
+                        console.log('Found captain from context:', captain);
                     }
                 }
             }
+            
+            if (line.includes('vice') || line.includes('(vc)') || line.includes('[vc]')) {
+                console.log('Found vice-captain indicator in line:', lines[i]);
+                // Try to extract player name from surrounding context
+                if (i > 0 && i < lines.length - 1) {
+                    const prevLine = lines[i - 1].trim();
+                    const nextLine = lines[i + 1].trim();
+                    
+                    // Check if previous or next line contains a player name
+                    const potentialViceCaptain = finalPlayers.find(player => 
+                        prevLine.includes(player.toLowerCase()) || 
+                        nextLine.includes(player.toLowerCase())
+                    );
+                    
+                    if (potentialViceCaptain && !viceCaptain) {
+                        viceCaptain = potentialViceCaptain;
+                        console.log('Found vice-captain from context:', viceCaptain);
+                    }
+                }
+            }
+        }
         
         // Look for common Dream11 captain/vice-captain patterns
         const captainPatterns = [
@@ -505,4 +361,111 @@ function parseTeamDataFromOCRText(ocrText) {
     };
 }
 
-module.exports = { processImageWithOCR, parseTeamDataFromOCRText }; 
+// Test cases for captain/vice captain detection
+const testCases = [
+    {
+        name: "Basic captain/vice captain with (c) and (vc)",
+        ocrText: `Virat Kohli (c)
+Rohit Sharma (vc)
+MS Dhoni
+Jasprit Bumrah
+Ravindra Jadeja
+KL Rahul
+Hardik Pandya
+R Ashwin
+Yuzvendra Chahal
+Bhuvneshwar Kumar
+Mohammed Shami`
+    },
+    {
+        name: "Captain/vice captain with different formats",
+        ocrText: `Captain: Virat Kohli
+Vice Captain: Rohit Sharma
+MS Dhoni
+Jasprit Bumrah
+Ravindra Jadeja
+KL Rahul
+Hardik Pandya
+R Ashwin
+Yuzvendra Chahal
+Bhuvneshwar Kumar
+Mohammed Shami`
+    },
+    {
+        name: "Captain/vice captain with [c] and [vc] brackets",
+        ocrText: `Virat Kohli [c]
+Rohit Sharma [vc]
+MS Dhoni
+Jasprit Bumrah
+Ravindra Jadeja
+KL Rahul
+Hardik Pandya
+R Ashwin
+Yuzvendra Chahal
+Bhuvneshwar Kumar
+Mohammed Shami`
+    },
+    {
+        name: "Captain/vice captain with C: and VC: format",
+        ocrText: `C: Virat Kohli
+VC: Rohit Sharma
+MS Dhoni
+Jasprit Bumrah
+Ravindra Jadeja
+KL Rahul
+Hardik Pandya
+R Ashwin
+Yuzvendra Chahal
+Bhuvneshwar Kumar
+Mohammed Shami`
+    },
+    {
+        name: "Captain/vice captain with spaces around indicators",
+        ocrText: `Virat Kohli ( c )
+Rohit Sharma ( vc )
+MS Dhoni
+Jasprit Bumrah
+Ravindra Jadeja
+KL Rahul
+Hardik Pandya
+R Ashwin
+Yuzvendra Chahal
+Bhuvneshwar Kumar
+Mohammed Shami`
+    }
+];
+
+console.log('Testing Enhanced OCR Captain/Vice Captain Detection\n');
+
+testCases.forEach((testCase, index) => {
+    console.log(`\n=== Test Case ${index + 1}: ${testCase.name} ===`);
+    console.log('Input OCR Text:');
+    console.log(testCase.ocrText);
+    console.log('\n--- Processing ---');
+    
+    try {
+        const result = parseTeamDataFromOCRText(testCase.ocrText);
+        
+        console.log('\nResults:');
+        console.log(`Players found: ${result.players.length}`);
+        console.log(`Captain: ${result.captain || 'Not detected'}`);
+        console.log(`Vice Captain: ${result.vice_captain || 'Not detected'}`);
+        console.log(`Captain Detection: ${result.captainDetection}`);
+        console.log(`Vice Captain Detection: ${result.viceCaptainDetection}`);
+        
+        if (result.captain && result.vice_captain) {
+            console.log('✅ SUCCESS: Both captain and vice-captain detected!');
+        } else if (result.captain || result.vice_captain) {
+            console.log('⚠️  PARTIAL: Only one detected');
+        } else {
+            console.log('❌ FAILED: Neither detected');
+        }
+        
+    } catch (error) {
+        console.error('❌ ERROR:', error.message);
+    }
+    
+    console.log('\n' + '='.repeat(60));
+});
+
+console.log('\nTest completed!'); 

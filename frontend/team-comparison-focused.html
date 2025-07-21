@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Focused Team Comparison - Dream11 Analyzer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Saira:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="js/utils/tailwind-config.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen font-primary">
+    <!-- Header -->
+    <div id="app-header"></div>
+    <script src="js/components/AppHeader.js"></script>
+
+    <!-- Main Content -->
+    <main class="w-full max-w-6xl mx-auto px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
+        
+        <!-- Page Header -->
+        <div class="bg-white rounded-lg shadow-cricket border border-gray-200 p-4 sm:p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Focused Team Comparison</h1>
+                    <p class="text-sm text-gray-600 mt-1">Compare teams with common players vs differentials analysis</p>
+                </div>
+                <div class="flex gap-2">
+                    <button id="back-btn" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
+                        ← Back
+                    </button>
+                    <button id="help-btn" class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
+                        Help
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="bg-white rounded-lg shadow-cricket border border-gray-200 p-4 sm:p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Upload Teams</h2>
+            
+            <!-- Upload Methods -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- CSV Upload -->
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+                    <div class="text-4xl mb-3">📄</div>
+                    <h3 class="font-semibold text-gray-900 mb-2">Upload CSV</h3>
+                    <p class="text-sm text-gray-600 mb-4">Upload teams in CSV format</p>
+                    <input type="file" id="csv-input" accept=".csv" class="hidden">
+                    <button id="csv-upload-btn" class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
+                        Choose CSV File
+                    </button>
+                    <div class="mt-2">
+                        <button id="download-template" class="text-primary text-sm hover:underline">Download Template</button>
+                    </div>
+                </div>
+
+                <!-- Screenshots Upload -->
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+                    <div class="text-4xl mb-3">📸</div>
+                    <h3 class="font-semibold text-gray-900 mb-2">Upload Screenshots</h3>
+                    <p class="text-sm text-gray-600 mb-4">Upload Dream11 team screenshots</p>
+                    <input type="file" id="screenshots-input" accept="image/*" multiple class="hidden">
+                    <button id="screenshots-upload-btn" class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
+                        Choose Images
+                    </button>
+                </div>
+            </div>
+
+            <!-- Upload Progress -->
+            <div id="upload-progress" class="hidden mt-4">
+                <div class="bg-gray-100 rounded-lg p-3">
+                    <div class="flex items-center justify-between text-sm">
+                        <span id="upload-status">Processing...</span>
+                        <span id="upload-count">0/0</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                        <div id="upload-bar" class="bg-primary h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Teams Summary -->
+        <div id="teams-summary" class="hidden bg-white rounded-lg shadow-cricket border border-gray-200 p-4 sm:p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Teams Summary</h2>
+            <div id="summary-content"></div>
+        </div>
+
+        <!-- Comparison Results -->
+        <div id="comparison-results" class="hidden space-y-4">
+            
+            <!-- Two Teams Comparison -->
+            <div id="two-teams-comparison" class="hidden">
+                <div class="bg-white rounded-lg shadow-cricket border border-gray-200 p-4 sm:p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Two Teams Comparison</h2>
+                    
+                    <!-- Common Players -->
+                    <div class="mb-6">
+                        <h3 class="font-medium text-gray-900 mb-3 flex items-center">
+                            <span class="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
+                            Common Players (<span id="common-count">0</span>)
+                        </h3>
+                        <div id="common-players" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                            <!-- Common players will be populated here -->
+                        </div>
+                    </div>
+
+                    <!-- Differentials -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="font-medium text-gray-900 mb-3 flex items-center">
+                                <span class="w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
+                                <span id="team1-name">Team 1</span> Differentials (<span id="team1-diff-count">0</span>)
+                            </h3>
+                            <div class="bg-blue-50 rounded-lg p-3">
+                                <div class="text-sm text-gray-600 mb-2">
+                                    Captain: <span id="team1-captain" class="font-medium">-</span> | 
+                                    Vice-Captain: <span id="team1-vc" class="font-medium">-</span>
+                                </div>
+                                <div id="team1-differentials" class="space-y-1">
+                                    <!-- Team 1 differentials will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="font-medium text-gray-900 mb-3 flex items-center">
+                                <span class="w-3 h-3 bg-red-500 rounded-full mr-2"></span>
+                                <span id="team2-name">Team 2</span> Differentials (<span id="team2-diff-count">0</span>)
+                            </h3>
+                            <div class="bg-red-50 rounded-lg p-3">
+                                <div class="text-sm text-gray-600 mb-2">
+                                    Captain: <span id="team2-captain" class="font-medium">-</span> | 
+                                    Vice-Captain: <span id="team2-vc" class="font-medium">-</span>
+                                </div>
+                                <div id="team2-differentials" class="space-y-1">
+                                    <!-- Team 2 differentials will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Overlap Summary -->
+                    <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-gray-900" id="overlap-percentage">0%</div>
+                            <div class="text-sm text-gray-600">Player Overlap</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Multiple Teams Comparison -->
+            <div id="multiple-teams-comparison" class="hidden">
+                <div class="bg-white rounded-lg shadow-cricket border border-gray-200 p-4 sm:p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Multiple Teams Analysis</h2>
+                    
+                    <!-- Player Frequency Analysis -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        
+                        <!-- Most Common Players -->
+                        <div>
+                            <h3 class="font-medium text-gray-900 mb-3 flex items-center">
+                                <span class="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
+                                Most Common Players
+                            </h3>
+                            <div id="most-common-players" class="space-y-2">
+                                <!-- Most common players will be populated here -->
+                            </div>
+                        </div>
+
+                        <!-- Moderately Common Players -->
+                        <div>
+                            <h3 class="font-medium text-gray-900 mb-3 flex items-center">
+                                <span class="w-3 h-3 bg-yellow-500 rounded-full mr-2"></span>
+                                Moderately Common Players
+                            </h3>
+                            <div id="moderately-common-players" class="space-y-2">
+                                <!-- Moderately common players will be populated here -->
+                            </div>
+                        </div>
+
+                        <!-- Unique Players -->
+                        <div>
+                            <h3 class="font-medium text-gray-900 mb-3 flex items-center">
+                                <span class="w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
+                                Unique Players
+                            </h3>
+                            <div id="unique-players" class="space-y-2">
+                                <!-- Unique players will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Captaincy Analysis -->
+                    <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="font-medium text-gray-900 mb-3">Popular Captains</h3>
+                            <div id="popular-captains" class="space-y-2">
+                                <!-- Popular captains will be populated here -->
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="font-medium text-gray-900 mb-3">Popular Vice-Captains</h3>
+                            <div id="popular-vice-captains" class="space-y-2">
+                                <!-- Popular vice-captains will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading-state" class="hidden bg-white rounded-lg shadow-cricket border border-gray-200 p-8 text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p class="text-gray-600">Analyzing teams...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="error-state" class="hidden bg-red-50 border border-red-200 rounded-lg p-4">
+            <div class="flex items-center">
+                <div class="text-red-500 mr-3">⚠️</div>
+                <div>
+                    <h3 class="text-red-800 font-medium">Error</h3>
+                    <p id="error-message" class="text-red-700 text-sm"></p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <div id="app-footer"></div>
+    <script src="js/components/AppFooter.js"></script>
+
+    <!-- Scripts -->
+    <script src="js/team-comparison-focused.js"></script>
+</body>
+</html> 

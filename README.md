@@ -19,6 +19,7 @@ AI-powered fantasy cricket team analysis with OCR, performance insights, and com
 - Node.js 16+ installed
 - OCR.space API key (free)
 - OpenAI API key (optional, for AI analysis)
+- Supabase account (for database features)
 
 ### Step 1: Get API Keys
 
@@ -32,6 +33,12 @@ AI-powered fantasy cricket team analysis with OCR, performance insights, and com
 1. Go to [OpenAI API Keys](https://platform.openai.com/api-keys)
 2. Sign up/Login and create a new API key
 3. Copy the key (starts with `sk-`)
+
+#### Supabase Account (Optional - For Database Features)
+1. Go to [Supabase](https://supabase.com)
+2. Sign up and create a new project
+3. Get project URL and anon key from Settings → API
+4. Run `database/schema.sql` in Supabase SQL editor
 
 ### Step 2: Backend Setup
 
@@ -55,6 +62,10 @@ NODE_ENV=development
 FRONTEND_URL=http://localhost:3000
 OCR_API_KEY=your_ocr_space_api_key_here
 OPENAI_API_KEY=your_openai_api_key_here
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+MAX_FILE_SIZE=5MB
+ALLOWED_FILE_TYPES=image/jpeg,image/png,image/jpg
 ```
 
 ```bash
@@ -159,17 +170,21 @@ Set these environment variables in Vercel Dashboard:
 
 **Required:**
 ```bash
-OPENAI_API_KEY=your_openai_api_key_here
+OCR_API_KEY=your_ocr_space_api_key_here
 NODE_ENV=production
+FRONTEND_URL=https://your-domain.vercel.app
 ```
 
 **Optional:**
 ```bash
-SUPABASE_URL=your_supabase_url
+OPENAI_API_KEY=your_openai_api_key_here
+SUPABASE_URL=your_supabase_project_url
 SUPABASE_ANON_KEY=your_supabase_anon_key
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=100
 PORT=3001
+MAX_FILE_SIZE=5MB
+ALLOWED_FILE_TYPES=image/jpeg,image/png,image/jpg
 ```
 
 ### After Deployment
@@ -262,6 +277,20 @@ node --version
 - The improved detection looks for C/VC markers near player names
 - If still not working, you can see debug info in backend terminal
 
+#### CORS Errors in Production
+- Ensure `FRONTEND_URL` environment variable is set correctly in Vercel
+- Check that the URL matches your actual deployment domain
+
+#### API Key Errors in Production
+- Verify all environment variables are set in Vercel dashboard
+- Check Vercel function logs for specific error messages
+- Ensure API keys are valid and have sufficient credits
+
+#### Database Connection Issues
+- Verify Supabase URL and anon key are correct
+- Check if database schema has been applied
+- Test database connection locally first
+
 ### Development Mode
 
 For development with auto-reload:
@@ -310,6 +339,40 @@ npm run dev
 - **Error Logging**: Detailed error messages
 - **API Testing**: Built-in health check endpoint
 
+### Cost Monitoring
+
+#### Free Tier Limits:
+- **Vercel**: 100GB bandwidth, 100 serverless function executions/day
+- **Supabase**: 500MB database, 50MB file storage
+- **OpenAI**: Pay per use (~$0.01-0.03 per analysis)
+- **OCR.space**: 500 requests/day
+
+#### Monitoring Setup:
+- Set up Vercel Analytics
+- Monitor OpenAI API usage
+- Check Supabase dashboard
+- Set up rate limit alerts
+
+## 🚀 Production Considerations
+
+### Security
+- **Rate Limiting**: Already configured in backend
+- **Security Headers**: Helmet.js is configured
+- **File Upload Limits**: Multer with size and type restrictions
+- **Error Handling**: Comprehensive error responses
+
+### Performance
+- **Caching**: Implement caching for API responses
+- **CDN**: Vercel provides global CDN
+- **Optimization**: Minify and compress assets
+- **Monitoring**: Set up performance alerts
+
+### Backup & Recovery
+- **Database Backups**: Supabase provides automatic backups
+- **Code Versioning**: Use Git for code management
+- **Environment Variables**: Secure storage in Vercel
+- **Disaster Recovery**: Document recovery procedures
+
 ## 🤝 Contributing
 
 1. Fork the repository
@@ -325,8 +388,9 @@ This project is licensed under the MIT License.
 ## 🆘 Support
 
 - **Issues**: Create an issue on GitHub
-- **Documentation**: Check this README and other .md files
+- **Documentation**: Check this README for comprehensive guides
 - **API Documentation**: Check the backend routes for endpoint details
+- **Troubleshooting**: Refer to the troubleshooting section above
 
 ---
 
