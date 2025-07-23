@@ -111,6 +111,12 @@ class EnhancedCricketAnalyzerApp {
             downloadTemplateBtn.addEventListener('click', () => this.downloadCSVTemplate());
         }
 
+        // Generate Teams Summary button
+        const generateSummaryBtn = document.getElementById('generate-summary-btn');
+        if (generateSummaryBtn) {
+            generateSummaryBtn.addEventListener('click', () => this.navigateToTeamSummary());
+        }
+
 
     }
 
@@ -1710,6 +1716,12 @@ Team 2,Mohammed Shami,Bowler,No,No`;
             image: null, 
             fallbackColor: 'bg-gray-500' 
         };
+    }
+
+    // Navigate to team summary page
+    navigateToTeamSummary() {
+        console.log('Navigating to team summary page...');
+        window.location.href = 'team-summary.html';
     }
 
     // Test function to verify toast functionality

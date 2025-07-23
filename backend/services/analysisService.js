@@ -701,9 +701,245 @@ function generateFocusedTeamComparison(teams) {
     }
 }
 
+// Helper function to calculate detailed team analytics
+function calculateTeamAnalytics(teamsData) {
+    if (!teamsData || teamsData.length === 0) {
+        return {
+            corePlayersText: 'None identified',
+            captainChoicesText: 'Not specified',
+            viceCaptainChoicesText: 'Not specified',
+            avgCredits: 0,
+            rotationCount: 0,
+            teamDistribution: 'Unknown'
+        };
+    }
+
+    // Calculate player frequency across all teams
+    const playerFrequency = {};
+    const captainFrequency = {};
+    const viceCaptainFrequency = {};
+    let totalCredits = 0;
+    let creditsCount = 0;
+
+    teamsData.forEach(team => {
+        // Count player appearances
+        team.players.forEach(player => {
+            if (player && player.trim()) {
+                playerFrequency[player] = (playerFrequency[player] || 0) + 1;
+            }
+        });
+
+        // Count captain/vice-captain choices
+        if (team.captain && team.captain.trim()) {
+            captainFrequency[team.captain] = (captainFrequency[team.captain] || 0) + 1;
+        }
+        if (team.viceCaptain && team.viceCaptain.trim()) {
+            viceCaptainFrequency[team.viceCaptain] = (viceCaptainFrequency[team.viceCaptain] || 0) + 1;
+        }
+
+        // Calculate average credits
+        if (team.credits && !isNaN(team.credits)) {
+            totalCredits += parseFloat(team.credits);
+            creditsCount++;
+        }
+    });
+
+    const totalTeams = teamsData.length;
+    
+    // Core players (>80% teams)
+    const coreThreshold = Math.ceil(totalTeams * 0.8);
+    const corePlayers = Object.entries(playerFrequency)
+        .filter(([, count]) => count >= coreThreshold)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 8); // Top 8 core players
+
+    // Most popular captains
+    const topCaptains = Object.entries(captainFrequency)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 3);
+
+    // Most popular vice-captains
+    const topViceCaptains = Object.entries(viceCaptainFrequency)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 3);
+
+    // Player rotation count (players in <50% of teams)
+    const rotationThreshold = Math.ceil(totalTeams * 0.5);
+    const rotationPlayers = Object.entries(playerFrequency)
+        .filter(([, count]) => count < rotationThreshold && count > 1)
+        .length;
+
+    // Average credits
+    const avgCredits = creditsCount > 0 ? (totalCredits / creditsCount).toFixed(1) : 'N/A';
+
+    // Format text outputs
+    const corePlayersText = corePlayers.length > 0 
+        ? corePlayers.map(([player, count]) => `${player} (${count}/${totalTeams})`).join(', ')
+        : 'No core players identified';
+
+    const captainChoicesText = topCaptains.length > 0
+        ? topCaptains.map(([captain, count]) => `${captain} (${count})`).join(', ')
+        : 'Not specified';
+
+    const viceCaptainChoicesText = topViceCaptains.length > 0
+        ? topViceCaptains.map(([vc, count]) => `${vc} (${count})`).join(', ')
+        : 'Not specified';
+
+    // Team distribution analysis (simplified)
+    const teamDistribution = `Core: ${corePlayers.length}, Rotation: ${rotationPlayers}, Unique: ${Object.keys(playerFrequency).length - corePlayers.length - rotationPlayers}`;
+
+    return {
+        corePlayersText,
+        captainChoicesText,
+        viceCaptainChoicesText,
+        avgCredits,
+        rotationCount: rotationPlayers,
+        teamDistribution,
+        totalPlayers: Object.keys(playerFrequency).length,
+        corePlayers: corePlayers,
+        topCaptains: topCaptains,
+        topViceCaptains: topViceCaptains
+    };
+}
+
+async function generateFantasyAnalysis({ matchDetails, teams }) {
+    try {
+        // Validate input data
+        if (!matchDetails || !teams || !Array.isArray(teams) || teams.length === 0) {
+            return { 
+                success: false, 
+                message: 'Match details and teams data are required' 
+            };
+        }
+
+        if (!process.env.OPENAI_API_KEY) {
+            return { 
+                success: false, 
+                message: 'OpenAI API key not configured' 
+            };
+        }
+
+        const { teamA, teamB, matchDate, format, venue, pitchCondition, weatherCondition } = matchDetails;
+
+        // Validate required match details
+        if (!teamA || !teamB || !matchDate || !venue) {
+            return { 
+                success: false, 
+                message: 'Team A, Team B, match date, and venue are required' 
+            };
+        }
+
+        // Convert teams data to JSON format for the prompt
+        const teamsJson = teams.map(team => {
+            const players = [];
+            // Extract players from Player1 to Player11
+            for (let i = 1; i <= 11; i++) {
+                const playerKey = `Player${i}`;
+                if (team[playerKey] && team[playerKey].trim()) {
+                    players.push(team[playerKey].trim());
+                }
+            }
+            
+            return {
+                teamName: team['Team Name'] || `Team ${team.rowNumber || ''}`,
+                captain: team.Captain || '',
+                viceCaptain: team['Vice Captain'] || '',
+                players: players,
+                credits: team.Credits || 0,
+                confidence: team.Confidence || 1
+            };
+        });
+
+        // Calculate detailed team analytics for the new prompt
+        const analytics = calculateTeamAnalytics(teamsJson);
+
+        // Build the comprehensive analysis prompt
+        const prompt = `You are a world-class fantasy sports analyst. Your task is to conduct a deep-dive analysis of my fantasy teams for the upcoming ${teamA} vs ${teamB} match.
+
+Match Details:
+- Match: ${teamA} vs ${teamB}
+- Format: ${format || 'ODI'}
+- Venue: ${venue}
+- Date: ${matchDate}
+- Pitch: ${pitchCondition || 'Balanced'}
+- Weather: ${weatherCondition || 'Clear'}
+
+Total Teams: ${teams.length}
+
+Team Analytics:
+- Core Players (>80% teams): ${analytics.corePlayersText}
+- Captain Choices: ${analytics.captainChoicesText}
+- Vice-Captain Choices: ${analytics.viceCaptainChoicesText}
+- Average Credits Used: ${analytics.avgCredits}
+- Player Rotation Count: ${analytics.rotationCount}
+- Team Distribution: ${analytics.teamDistribution}
+
+Fantasy Teams Data: ${JSON.stringify(teamsJson, null, 2)}
+
+Please structure your analysis in the following sections:
+
+**1. Overall Verdict:**
+   - Give my strategy a catchy title (e.g., "High-Risk, High-Reward," "Balanced Portfolio").
+   - Provide a 2-3 sentence executive summary of my approach and its primary strengths and weaknesses.
+
+**2. In-Depth Team Autopsy:**
+   - Present a table analyzing my strategy, covering:
+     - Captain & Vice-Captain choices (note if they are fixed).
+     - Core Players (identify players in >80% of teams).
+     - Player Rotation (which players are being swapped).
+     - Credit Management (average credits used).
+
+**3. Strategic Overhaul & Actionable Recommendations:**
+   - **Captaincy Diversification:** Suggest a new model for splitting my Captain/VC choices across the ${teams.length} teams.
+   - **Core Player Adjustments:** Advise on which core players to reduce exposure to and suggest new "differential" players to add.
+   - **New Team Blueprint:** Propose 3-4 distinct team archetypes or structures (e.g., "Pace Attack," "Batting Heavy," "All-Rounder Hedge") and how many teams to allocate to each.
+
+Your final output should be well-formatted, using headings, bold text, and tables to be easily readable in simple text structured format.`;
+
+        // Make OpenAI API call
+        const completion = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+                {
+                    role: "system",
+                    content: "You are a world-class fantasy sports analyst with expertise in cricket strategy, team composition, and risk management. Provide comprehensive, structured analysis with actionable insights. Use clear headings, tables, and bullet points. Focus on strategic recommendations that can improve fantasy team performance. Be specific with numbers, percentages, and concrete suggestions. Write in simple text structured format that's easy to read and implement."
+                },
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ],
+            max_tokens: 2000,
+            temperature: 0.7,
+        });
+
+        const analysis = completion.choices[0].message.content;
+
+        return {
+            success: true,
+            analysis: analysis,
+            message: 'Fantasy teams analysis completed successfully',
+            metadata: {
+                totalTeams: teams.length,
+                matchDetails: matchDetails,
+                processedAt: new Date().toISOString()
+            }
+        };
+
+    } catch (error) {
+        console.error('Fantasy analysis error:', error);
+        return {
+            success: false,
+            message: 'Failed to generate fantasy analysis',
+            error: error.message
+        };
+    }
+}
+
 module.exports = {
     analyzeTeam,
     teamSummary,
     analyzeMultipleTeams,
-    generateFocusedTeamComparison
+    generateFocusedTeamComparison,
+    generateFantasyAnalysis
 }; 

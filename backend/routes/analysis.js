@@ -6,5 +6,6 @@ router.post('/analyze', analysisController.analyzeTeam);
 router.post('/team-summary', analysisController.teamSummary);
 router.post('/analyze-multiple', analysisController.analyzeMultipleTeams);
 router.post('/compare-teams-focused', analysisController.compareTeamsFocused);
+router.post('/fantasy-analysis', analysisController.fantasyAnalysis);
 
 module.exports = router; 
