@@ -83,7 +83,6 @@ class TabbedTeamAnalysisApp {
 
         // Analysis buttons
         document.getElementById('analyze-all-btn').addEventListener('click', () => this.analyzeAllTeams());
-        document.getElementById('compare-teams-btn').addEventListener('click', () => this.compareTeams());
 
         // Player validation button
         const validatePlayersBtn = document.getElementById('validate-players-btn');
@@ -1664,16 +1663,31 @@ class TabbedTeamAnalysisApp {
 
     loadTeamComparisonData() {
         console.log('Loading team comparison data...');
+        const comparisonContainer = document.getElementById('comparison-teams-preview');
         
-        // Always hide comparison sections initially - they will be shown only after clicking compare button
-        document.getElementById('comparison-table-section').classList.add('hidden');
+        if (!comparisonContainer) return;
         
-        // Check team count and show appropriate message
-        if (this.currentTeams.length < 2) {
-            document.getElementById('team-count-check').classList.remove('hidden');
-        } else {
-            document.getElementById('team-count-check').classList.add('hidden');
+        if (this.currentTeams.length === 0) {
+            comparisonContainer.innerHTML = `
+                <div class="text-center py-12">
+                    <div class="text-gray-400 text-6xl mb-4">📊</div>
+                    <h3 class="text-lg font-bold text-gray-900 mb-2">No Teams Available</h3>
+                    <p class="text-sm text-gray-500">Please upload teams to see the comparison</p>
+                </div>
+            `;
+            return;
         }
+
+        // Generate team preview cards for comparison
+        comparisonContainer.innerHTML = `
+            <div>
+                <h4 class="font-semibold text-sm text-gray-900 mb-4 flex items-center">
+                    <span class="text-primary mr-2">🏆</span>
+                    Team Comparison (${this.currentTeams.length})
+                </h4>
+                ${this.generateTeamPreviewCards()}
+            </div>
+        `;
     }
 
     loadTeamsSummaryData() {
@@ -1760,610 +1774,90 @@ class TabbedTeamAnalysisApp {
         this.components.toast.showSuccess('Analysis completed!');
     }
 
+    // Comparison functionality removed - tab is now empty
     async compareTeams() {
-        if (this.currentTeams.length < 2) {
-            this.components.toast.showError('Need at least 2 teams to compare');
-            return;
-        }
-
-        try {
-            // Show loading state
-            this.showComparisonLoading(true);
-            
-            // Check if teams have captain/vice-captain selected
-            const incompleteTeams = this.currentTeams.filter(team => !team.captain || !team.viceCaptain);
-            if (incompleteTeams.length > 0) {
-                this.components.toast.showError(`Please select captain and vice-captain for all teams first`);
-                return;
-            }
-
-            // Generate comparison data
-            const comparisonData = await this.generateComparisonData();
-            
-            // Display comparison results
-            this.displayComparisonResults(comparisonData);
-            
-            // Generate AI recommendations
-            await this.generateAIRecommendations(comparisonData);
-            
-            this.components.toast.showSuccess(`Successfully compared ${this.currentTeams.length} teams`);
-            
-        } catch (error) {
-            console.error('Team comparison error:', error);
-            this.components.toast.showError('Failed to compare teams. Please try again.');
-        } finally {
-            this.showComparisonLoading(false);
-        }
+        console.log('Comparison functionality removed');
     }
 
     async generateComparisonData() {
-        const comparisonData = {
-            teams: this.currentTeams.map((team, index) => {
-                // Calculate team composition
-                const batsmen = team.players.filter(p => 
-                    !p.toLowerCase().includes('bumrah') && 
-                    !p.toLowerCase().includes('chahal') && 
-                    !p.toLowerCase().includes('shami') && 
-                    !p.toLowerCase().includes('kumar') && 
-                    !p.toLowerCase().includes('hazlewood') &&
-                    !p.toLowerCase().includes('boult') &&
-                    !p.toLowerCase().includes('archer')
-                ).length;
-                
-                const bowlers = team.players.filter(p => 
-                    p.toLowerCase().includes('bumrah') || 
-                    p.toLowerCase().includes('chahal') || 
-                    p.toLowerCase().includes('shami') || 
-                    p.toLowerCase().includes('kumar') || 
-                    p.toLowerCase().includes('hazlewood') ||
-                    p.toLowerCase().includes('boult') ||
-                    p.toLowerCase().includes('archer')
-                ).length;
-                
-                const allRounders = team.players.filter(p => 
-                    p.toLowerCase().includes('stokes') || 
-                    p.toLowerCase().includes('jadeja') || 
-                    p.toLowerCase().includes('stoinis') || 
-                    p.toLowerCase().includes('pandya') ||
-                    p.toLowerCase().includes('maxwell') ||
-                    p.toLowerCase().includes('russell')
-                ).length;
-                
-                const wicketKeepers = team.players.filter(p => 
-                    p.toLowerCase().includes('pant') || 
-                    p.toLowerCase().includes('salt') || 
-                    p.toLowerCase().includes('rahul') ||
-                    p.toLowerCase().includes('buttler') ||
-                    p.toLowerCase().includes('kishan')
-                ).length;
-
-                // Calculate team balance score (1-10)
-                const balanceScore = this.calculateTeamBalance(batsmen, bowlers, allRounders, wicketKeepers);
-                
-                // Calculate overall rating based on composition and captaincy
-                const overallRating = this.calculateOverallRating(balanceScore, team.captain, team.viceCaptain);
-
-                return {
-                    id: team.id || index + 1,
-                    name: team.name || `Team ${index + 1}`,
-                    players: team.players,
-                    captain: team.captain,
-                    viceCaptain: team.viceCaptain,
-                    composition: {
-                        batsmen,
-                        bowlers,
-                        allRounders,
-                        wicketKeepers
-                    },
-                    balanceScore,
-                    overallRating
-                };
-            }),
-            matchDetails: this.currentMatchDetails
-        };
-
-        return comparisonData;
+        console.log('Comparison functionality removed');
+        return {};
     }
 
-    calculateTeamBalance(batsmen, bowlers, allRounders, wicketKeepers) {
-        // Ideal composition: 4-5 batsmen, 3-4 bowlers, 1-2 all-rounders, 1 wicket-keeper
-        let score = 5; // Base score
-        
-        // Batsmen balance (ideal: 4-5)
-        if (batsmen >= 4 && batsmen <= 5) score += 2;
-        else if (batsmen >= 3 && batsmen <= 6) score += 1;
-        else score -= 1;
-        
-        // Bowlers balance (ideal: 3-4)
-        if (bowlers >= 3 && bowlers <= 4) score += 2;
-        else if (bowlers >= 2 && bowlers <= 5) score += 1;
-        else score -= 1;
-        
-        // All-rounders balance (ideal: 1-2)
-        if (allRounders >= 1 && allRounders <= 2) score += 1;
-        else if (allRounders === 0 || allRounders === 3) score += 0.5;
-        else score -= 0.5;
-        
-        // Wicket-keeper balance (ideal: 1)
-        if (wicketKeepers === 1) score += 1;
-        else if (wicketKeepers === 0) score -= 1;
-        else score -= 0.5;
-        
-        return Math.max(1, Math.min(10, Math.round(score)));
+    calculateTeamBalance() {
+        console.log('Comparison functionality removed');
+        return 0;
     }
 
-    calculateOverallRating(balanceScore, captain, viceCaptain) {
-        let rating = balanceScore;
-        
-        // Bonus for good captain/vice-captain choices
-        if (captain && viceCaptain && captain !== viceCaptain) {
-            rating += 1;
-        }
-        
-        // Penalty for missing captain/vice-captain
-        if (!captain || !viceCaptain) {
-            rating -= 2;
-        }
-        
-        return Math.max(1, Math.min(10, Math.round(rating)));
+    calculateOverallRating() {
+        console.log('Comparison functionality removed');
+        return 0;
     }
 
-    displayComparisonResults(comparisonData) {
-        // Show comparison table
-        document.getElementById('team-count-check').classList.add('hidden');
-        document.getElementById('comparison-table-section').classList.remove('hidden');
-        
-        // Populate comparison table
-        const tableBody = document.getElementById('comparison-table-body');
-        tableBody.innerHTML = comparisonData.teams.map(team => `
-            <tr class="border-b border-gray-100 hover:bg-gray-50">
-                <td class="px-4 py-3">
-                    <div class="font-semibold text-sm text-gray-900">${team.name}</div>
-                    <div class="text-xs text-gray-500">${team.players.length} players</div>
-                </td>
-                <td class="px-4 py-3 text-center">
-                    <div class="text-sm font-medium text-gray-900">${team.players.length}</div>
-                </td>
-                <td class="px-4 py-3 text-center">
-                    <div class="text-sm text-gray-900">${team.captain || 'Not set'}</div>
-                </td>
-                <td class="px-4 py-3 text-center">
-                    <div class="text-sm text-gray-900">${team.viceCaptain || 'Not set'}</div>
-                </td>
-                <td class="px-4 py-3 text-center">
-                    <div class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        team.balanceScore >= 8 ? 'bg-green-100 text-green-800' :
-                        team.balanceScore >= 6 ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                    }">
-                        ${team.balanceScore}/10
-                    </div>
-                </td>
-                <td class="px-4 py-3 text-center">
-                    <div class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        team.overallRating >= 8 ? 'bg-green-100 text-green-800' :
-                        team.overallRating >= 6 ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                    }">
-                        ${team.overallRating}/10
-                    </div>
-                </td>
-            </tr>
-        `).join('');
-
-        // Display composition charts
-        this.displayCompositionCharts(comparisonData.teams);
-        
-        // Display player overlap analysis
-        this.displayPlayerOverlap(comparisonData.teams);
-        
-        // Display summary and patterns
-        this.displaySummaryAndPatterns(comparisonData);
+    displayComparisonResults() {
+        console.log('Comparison functionality removed');
     }
 
-    displayCompositionCharts(teams) {
-        const chartContainer = document.getElementById('composition-chart');
-        chartContainer.innerHTML = teams.map(team => `
-            <div class="mb-6">
-                <h5 class="font-semibold text-gray-900 mb-3">${team.name}</h5>
-                <div class="space-y-2">
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-700">Batsmen</span>
-                        <span class="text-sm font-semibold text-blue-600">${team.composition.batsmen}</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-700">Bowlers</span>
-                        <span class="text-sm font-semibold text-red-600">${team.composition.bowlers}</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-700">All-Rounders</span>
-                        <span class="text-sm font-semibold text-green-600">${team.composition.allRounders}</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-700">Wicket-Keepers</span>
-                        <span class="text-sm font-semibold text-purple-600">${team.composition.wicketKeepers}</span>
-                    </div>
-
-                </div>
-            </div>
-        `).join('');
+    displayCompositionCharts() {
+        console.log('Comparison functionality removed');
     }
 
-    displayPlayerOverlap(teams) {
-        const overlapContainer = document.getElementById('overlap-analysis');
-        
-        // Find common players across teams
-        const playerCounts = {};
-        teams.forEach(team => {
-            team.players.forEach(player => {
-                playerCounts[player] = (playerCounts[player] || 0) + 1;
-            });
-        });
-
-        const commonPlayers = Object.entries(playerCounts)
-            .filter(([player, count]) => count > 1)
-            .sort(([,a], [,b]) => b - a)
-            .slice(0, 10);
-
-        if (commonPlayers.length === 0) {
-            overlapContainer.innerHTML = `
-                <div class="text-sm text-gray-500">No common players found</div>
-            `;
-            return;
-        }
-
-        overlapContainer.innerHTML = `
-            <div class="space-y-2">
-                ${commonPlayers.map(([player, count]) => `
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-700">${player}</span>
-                        <span class="text-sm font-semibold text-primary">${count} teams</span>
-                    </div>
-                `).join('')}
-            </div>
-        `;
+    displayPlayerOverlap() {
+        console.log('Comparison functionality removed');
     }
 
-    displaySummaryAndPatterns(comparisonData) {
-        const summaryContainer = document.getElementById('summary-patterns-content');
-        
-        // Calculate average ratings
-        const avgRating = (comparisonData.teams.reduce((sum, team) => sum + team.overallRating, 0) / comparisonData.teams.length).toFixed(1);
-        const bestTeam = comparisonData.teams.reduce((best, current) => current.overallRating > best.overallRating ? current : best);
-        const worstTeam = comparisonData.teams.reduce((worst, current) => current.overallRating < worst.overallRating ? current : worst);
-        
-        // Calculate composition averages
-        const avgBatsmen = (comparisonData.teams.reduce((sum, team) => sum + team.composition.batsmen, 0) / comparisonData.teams.length).toFixed(1);
-        const avgBowlers = (comparisonData.teams.reduce((sum, team) => sum + team.composition.bowlers, 0) / comparisonData.teams.length).toFixed(1);
-        const avgAllRounders = (comparisonData.teams.reduce((sum, team) => sum + team.composition.allRounders, 0) / comparisonData.teams.length).toFixed(1);
-        
-        // Analyze captaincy patterns
-        const captainTypes = comparisonData.teams.map(team => {
-            const captain = team.captain.toLowerCase();
-            if (this.isBatsman(captain)) return 'experienced-batsman';
-            if (this.isAllRounder(captain)) return 'all-rounder';
-            if (this.isBowler(captain)) return 'bowler';
-            return 'other';
-        });
-        
-        const mostCommonCaptainType = this.getMostCommonPattern(captainTypes);
-        
-        summaryContainer.innerHTML = `
-            <div class="space-y-4">
-                <div>
-                    <h5 class="font-semibold text-gray-900 mb-2">Summary</h5>
-                    <p class="text-sm text-gray-700">
-                        Analyzed ${comparisonData.teams.length} teams with an average rating of ${avgRating}/10. 
-                        ${bestTeam.name} leads with ${bestTeam.overallRating}/10, while ${worstTeam.name} scores ${worstTeam.overallRating}/10. 
-                        The quality gap is ${(bestTeam.overallRating - worstTeam.overallRating).toFixed(1)} points. 
-                        Key insights: Most teams prefer ${mostCommonCaptainType} as captain, indicating a conservative, stability-focused approach.
-                    </p>
-                </div>
-                
-                <div>
-                    <h5 class="font-semibold text-gray-900 mb-2">Team Patterns</h5>
-                    <div class="space-y-2">
-                        <div class="text-sm text-gray-700">
-                            <span class="font-medium">Captaincy Strategy:</span> Most teams prefer ${mostCommonCaptainType} as captain, indicating a conservative, stability-focused approach.
-                        </div>
-                        <div class="text-sm text-gray-700">
-                            <span class="font-medium">Composition Trends:</span> Average composition: ${avgBatsmen} batsmen, ${avgBowlers} bowlers, ${avgAllRounders} all-rounders. ${avgBatsmen > avgBowlers ? 'Batting-heavy approach dominates.' : 'Balanced approach preferred.'}
-                        </div>
-                        <div class="text-sm text-gray-700">
-                            <span class="font-medium">Quality Assessment:</span> Average team rating: ${avgRating}/10. ${(bestTeam.overallRating - worstTeam.overallRating) > 3 ? 'Significant quality differences exist.' : 'Teams are relatively balanced.'} Overall ${avgRating >= 7 ? 'high-quality' : avgRating >= 5 ? 'moderate-quality' : 'developing'} teams.
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+    displaySummaryAndPatterns() {
+        console.log('Comparison functionality removed');
     }
 
-    async generateAIRecommendations(comparisonData) {
-        try {
-            // Prepare data for AI analysis
-            const teamsData = comparisonData.teams.map(team => ({
-                name: team.name,
-                players: team.players.join(', '),
-                captain: team.captain,
-                viceCaptain: team.viceCaptain,
-                composition: team.composition,
-                balanceScore: team.balanceScore,
-                overallRating: team.overallRating
-            }));
-
-            const analysisData = {
-                teams: teamsData,
-                teamA: comparisonData.matchDetails.teamA,
-                teamB: comparisonData.matchDetails.teamB,
-                matchDate: comparisonData.matchDetails.matchDate
-            };
-
-            // Call AI analysis service
-            const response = await fetch(`${API_BASE_URL}/analyze-multiple`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(analysisData)
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                this.generateComprehensiveRecommendation(comparisonData, result.analysis);
-            } else {
-                throw new Error(result.message || 'AI analysis failed');
-            }
-
-        } catch (error) {
-            console.error('AI recommendation error:', error);
-            // Fallback to basic recommendation
-            this.generateBasicRecommendation(comparisonData);
-        }
+    async generateAIRecommendations() {
+        console.log('Comparison functionality removed');
     }
 
-
-
-    generateComprehensiveRecommendation(comparisonData, aiAnalysis) {
-        const recommendationContainer = document.getElementById('recommendation-content');
-        
-        if (comparisonData.teams.length === 1) {
-            recommendationContainer.innerHTML = `
-                <p class="text-sm text-gray-700">Only one team uploaded. Please upload more teams for comparison.</p>
-            `;
-            return;
-        }
-
-        // Generate scenario recommendations and best team only
-        const scenarioRecommendations = this.generateScenarioRecommendations(comparisonData);
-
-        const recommendationText = `
-            <div class="space-y-4">
-                <!-- Scenario Recommendations -->
-                <div>
-                    <h5 class="font-semibold text-gray-900 mb-2">Recommendations</h5>
-                    <div class="space-y-2">
-                        ${scenarioRecommendations.map(scenario => `
-                            <div class="text-sm text-gray-700">
-                                <span class="font-medium">${scenario.scenario}:</span> ${scenario.recommendedTeam} - ${scenario.reasoning}
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-
-                <!-- Best Overall Team -->
-                <div>
-                    <h5 class="font-semibold text-gray-900 mb-2">Best Team</h5>
-                    <div class="text-sm text-gray-700">
-                        ${this.generateBestTeamRecommendation(comparisonData)}
-                    </div>
-                </div>
-            </div>
-        `;
-
-        recommendationContainer.innerHTML = recommendationText;
+    generateComprehensiveRecommendation() {
+        console.log('Comparison functionality removed');
     }
 
-    analyzeTeamPatterns(comparisonData) {
-        const patterns = [];
-        const teams = comparisonData.teams;
-
-        // Analyze captaincy patterns
-        const captainTypes = teams.map(team => {
-            const captain = team.captain.toLowerCase();
-            if (captain.includes('kohli') || captain.includes('rohit') || captain.includes('dhoni')) {
-                return 'experienced-batsman';
-            } else if (captain.includes('chahal') || captain.includes('bumrah') || captain.includes('hazlewood')) {
-                return 'bowler';
-            } else if (captain.includes('stoinis') || captain.includes('jadeja') || captain.includes('pandya')) {
-                return 'all-rounder';
-            }
-            return 'other';
-        });
-
-        const captainPattern = this.getMostCommonPattern(captainTypes);
-        patterns.push({
-            title: 'Captaincy Strategy',
-            description: `Most teams prefer ${captainPattern} as captain, indicating a ${captainPattern === 'experienced-batsman' ? 'conservative, stability-focused approach' : captainPattern === 'bowler' ? 'aggressive, wicket-taking strategy' : 'balanced, all-round approach'}.`
-        });
-
-        // Analyze team composition patterns
-        const avgBatsmen = teams.reduce((sum, team) => sum + team.composition.batsmen, 0) / teams.length;
-        const avgBowlers = teams.reduce((sum, team) => sum + team.composition.bowlers, 0) / teams.length;
-        const avgAllRounders = teams.reduce((sum, team) => sum + team.composition.allRounders, 0) / teams.length;
-
-        patterns.push({
-            title: 'Composition Trends',
-            description: `Average composition: ${avgBatsmen.toFixed(1)} batsmen, ${avgBowlers.toFixed(1)} bowlers, ${avgAllRounders.toFixed(1)} all-rounders. ${this.getCompositionInsight(avgBatsmen, avgBowlers, avgAllRounders)}`
-        });
-
-        // Analyze rating patterns
-        const avgRating = teams.reduce((sum, team) => sum + team.overallRating, 0) / teams.length;
-        const ratingSpread = Math.max(...teams.map(t => t.overallRating)) - Math.min(...teams.map(t => t.overallRating));
-        
-        patterns.push({
-            title: 'Quality Assessment',
-            description: `Average team rating: ${avgRating.toFixed(1)}/10. ${ratingSpread < 2 ? 'Teams are closely matched' : 'Significant quality differences exist'}. ${avgRating >= 7 ? 'Overall high-quality teams' : avgRating >= 5 ? 'Moderate quality teams' : 'Teams need improvement'}.`
-        });
-
-        return patterns;
+    analyzeTeamPatterns() {
+        console.log('Comparison functionality removed');
+        return [];
     }
 
-    generateScenarioRecommendations(comparisonData) {
-        const scenarios = [];
-        const teams = comparisonData.teams;
-
-        // Scenario 1: Batting first
-        const battingFirstTeam = teams.reduce((best, current) => {
-            const battingStrength = current.composition.batsmen + (current.composition.allRounders * 0.5);
-            const bestBattingStrength = best.composition.batsmen + (best.composition.allRounders * 0.5);
-            return battingStrength > bestBattingStrength ? current : best;
-        });
-        scenarios.push({
-            scenario: '🏏 Batting First',
-            recommendedTeam: battingFirstTeam.name,
-            reasoning: `Strong batting lineup with ${battingFirstTeam.composition.batsmen} specialist batsmen and ${battingFirstTeam.composition.allRounders} all-rounders. Ideal for setting a competitive total.`
-        });
-
-        // Scenario 2: Chasing
-        const chasingTeam = teams.reduce((best, current) => {
-            const chasingStrength = current.composition.bowlers + (current.composition.allRounders * 0.5);
-            const bestChasingStrength = best.composition.bowlers + (best.composition.allRounders * 0.5);
-            return chasingStrength > bestChasingStrength ? current : best;
-        });
-        scenarios.push({
-            scenario: '🎯 Chasing Target',
-            recommendedTeam: chasingTeam.name,
-            reasoning: `Strong bowling attack with ${chasingTeam.composition.bowlers} specialist bowlers. Can restrict opposition and chase effectively.`
-        });
-
-        // Scenario 3: Spin-friendly pitch
-        const spinTeam = teams.reduce((best, current) => {
-            const spinStrength = current.players.filter(p => 
-                p.toLowerCase().includes('chahal') || 
-                p.toLowerCase().includes('jadeja') || 
-                p.toLowerCase().includes('ashwin')
-            ).length;
-            const bestSpinStrength = best.players.filter(p => 
-                p.toLowerCase().includes('chahal') || 
-                p.toLowerCase().includes('jadeja') || 
-                p.toLowerCase().includes('ashwin')
-            ).length;
-            return spinStrength > bestSpinStrength ? current : best;
-        });
-        scenarios.push({
-            scenario: '🔄 Spin-Friendly Pitch',
-            recommendedTeam: spinTeam.name,
-            reasoning: `Has the most spin options and players who excel on turning tracks.`
-        });
-
-        // Scenario 4: Pace-friendly pitch
-        const paceTeam = teams.reduce((best, current) => {
-            const paceStrength = current.players.filter(p => 
-                p.toLowerCase().includes('bumrah') || 
-                p.toLowerCase().includes('hazlewood') || 
-                p.toLowerCase().includes('archer') ||
-                p.toLowerCase().includes('kumar')
-            ).length;
-            const bestPaceStrength = best.players.filter(p => 
-                p.toLowerCase().includes('bumrah') || 
-                p.toLowerCase().includes('hazlewood') || 
-                p.toLowerCase().includes('archer') ||
-                p.toLowerCase().includes('kumar')
-            ).length;
-            return paceStrength > bestPaceStrength ? current : best;
-        });
-        scenarios.push({
-            scenario: '⚡ Pace-Friendly Pitch',
-            recommendedTeam: paceTeam.name,
-            reasoning: `Strong pace bowling attack with multiple fast bowlers who can exploit bouncy conditions.`
-        });
-
-        return scenarios;
+    generateScenarioRecommendations() {
+        console.log('Comparison functionality removed');
+        return [];
     }
 
-    generateOverallSummary(comparisonData, patterns) {
-        const teams = comparisonData.teams;
-        const bestTeam = teams.reduce((best, current) => 
-            current.overallRating > best.overallRating ? current : best
-        );
-        const worstTeam = teams.reduce((worst, current) => 
-            current.overallRating < worst.overallRating ? current : worst
-        );
-
-        const totalTeams = teams.length;
-        const avgRating = teams.reduce((sum, team) => sum + team.overallRating, 0) / totalTeams;
-        const ratingSpread = bestTeam.overallRating - worstTeam.overallRating;
-
-        return `Analyzed ${totalTeams} teams with an average rating of ${avgRating.toFixed(1)}/10. ${bestTeam.name} leads with ${bestTeam.overallRating}/10, while ${worstTeam.name} scores ${worstTeam.overallRating}/10. The ${ratingSpread < 2 ? 'teams are closely matched' : 'quality gap is significant'}. Key insights: ${patterns.length > 0 ? patterns[0].description : 'Teams show diverse strategies'}.`;
+    generateOverallSummary() {
+        console.log('Comparison functionality removed');
+        return '';
     }
 
-    generateBestTeamRecommendation(comparisonData) {
-        const bestTeam = comparisonData.teams.reduce((best, current) => 
-            current.overallRating > best.overallRating ? current : best
-        );
-
-        return `${bestTeam.name} (${bestTeam.overallRating}/10) - Best overall performance with ${bestTeam.players.length} players, balance score ${bestTeam.balanceScore}/10, captain ${bestTeam.captain}, vice-captain ${bestTeam.viceCaptain}.`;
+    generateBestTeamRecommendation() {
+        console.log('Comparison functionality removed');
+        return '';
     }
 
-    getMostCommonPattern(types) {
-        const counts = {};
-        types.forEach(type => {
-            counts[type] = (counts[type] || 0) + 1;
-        });
-        return Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+    getMostCommonPattern() {
+        console.log('Comparison functionality removed');
+        return '';
     }
 
-    getCompositionInsight(avgBatsmen, avgBowlers, avgAllRounders) {
-        if (avgBatsmen > avgBowlers && avgBatsmen > avgAllRounders) {
-            return 'Batting-heavy approach dominates.';
-        } else if (avgBowlers > avgBatsmen && avgBowlers > avgAllRounders) {
-            return 'Bowling-focused strategy preferred.';
-        } else {
-            return 'Balanced approach with emphasis on all-rounders.';
-        }
+    getCompositionInsight() {
+        console.log('Comparison functionality removed');
+        return '';
     }
 
-    generateRecommendation(comparisonData, aiAnalysis) {
-        // Legacy function - now calls comprehensive recommendation
-        this.generateComprehensiveRecommendation(comparisonData, aiAnalysis);
+    generateRecommendation() {
+        console.log('Comparison functionality removed');
     }
 
-    generateBasicRecommendation(comparisonData) {
-        // Fallback recommendation without AI
-        const bestTeam = comparisonData.teams.reduce((best, current) => 
-            current.overallRating > best.overallRating ? current : best
-        );
-
-        const recommendationContainer = document.getElementById('recommendation-content');
-        
-        if (comparisonData.teams.length === 1) {
-            recommendationContainer.innerHTML = `
-                <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-                    <div class="text-center">
-                        <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                        </svg>
-                        <p class="text-gray-700 font-medium">Only one team uploaded. Please upload more teams for comparison.</p>
-                    </div>
-                </div>
-            `;
-        } else {
-            // Use the same comprehensive recommendation structure for consistency
-            this.generateComprehensiveRecommendation(comparisonData, null);
-        }
+    generateBasicRecommendation() {
+        console.log('Comparison functionality removed');
     }
 
-    showComparisonLoading(show) {
-        const loadingElement = document.getElementById('comparison-loading');
-        const tableSection = document.getElementById('comparison-table-section');
-        
-        if (show) {
-            loadingElement.classList.remove('hidden');
-            tableSection.classList.add('hidden');
-        } else {
-            loadingElement.classList.add('hidden');
-        }
+    showComparisonLoading() {
+        console.log('Comparison functionality removed');
     }
 
     // Loading and error handling methods
@@ -2495,6 +1989,307 @@ class TabbedTeamAnalysisApp {
             fallbackColor: 'bg-blue-400' 
         },
     };
+
+    // Team composition calculation
+    calculateTeamComposition(team) {
+        if (!team.validationResults) return { wk: 0, bat: 0, ar: 0, bowl: 0 };
+
+        let wk = 0, bat = 0, ar = 0, bowl = 0;
+
+        team.validationResults.forEach(player => {
+            if (!player.isValid || !player.role) return;
+
+            const role = player.role.toLowerCase();
+            if (role.includes('wicket') || role.includes('keeper') || role.includes('wk')) {
+                wk++;
+            } else if (role.includes('all') || role.includes('rounder') || role.includes('ar')) {
+                ar++;
+            } else if (role.includes('bowl') || role.includes('spinner') || role.includes('pacer')) {
+                bowl++;
+            } else if (role.includes('bat') || role.includes('batsman') || role.includes('batter')) {
+                bat++;
+            } else {
+                // Default classification based on common player names/patterns
+                const name = player.validatedName.toLowerCase();
+                if (name.includes('pant') || name.includes('dhoni') || name.includes('karthik') || 
+                    name.includes('kishan') || name.includes('salt') || name.includes('buttler') || 
+                    name.includes('samson') || name.includes('rahul')) {
+                    wk++;
+                } else if (name.includes('bumrah') || name.includes('chahal') || name.includes('shami') || 
+                         name.includes('archer') || name.includes('boult') || name.includes('hazlewood') ||
+                         name.includes('malinga') || name.includes('rashid') || name.includes('nortje')) {
+                    bowl++;
+                } else if (name.includes('jadeja') || name.includes('pandya') || name.includes('russell') || 
+                         name.includes('stokes') || name.includes('maxwell') || name.includes('stoinis') ||
+                         name.includes('narine') || name.includes('pollard')) {
+                    ar++;
+                } else {
+                    bat++; // Default to batsman
+                }
+            }
+        });
+
+        return { wk, bat, ar, bowl };
+    }
+
+    // Calculate how many players are from Team A and Team B
+    calculateTeamPlayerCounts(team) {
+        if (!team.validationResults) return { teamACount: 0, teamBCount: 0 };
+
+        const teamA = this.currentMatchDetails?.teamA || 'Team A';
+        const teamB = this.currentMatchDetails?.teamB || 'Team B';
+        
+        let teamACount = 0;
+        let teamBCount = 0;
+
+        team.validationResults.forEach(player => {
+            if (!player.isValid || !player.team) return;
+
+            const playerTeam = player.team;
+            if (playerTeam === teamA || (teamA && playerTeam.includes(teamA))) {
+                teamACount++;
+            } else if (playerTeam === teamB || (teamB && playerTeam.includes(teamB))) {
+                teamBCount++;
+            }
+        });
+
+        return { teamACount, teamBCount };
+    }
+
+    // Generate team-based scenario tag
+    generateTeamBasedTag(team) {
+        const teamCounts = this.calculateTeamPlayerCounts(team);
+        const teamA = this.currentMatchDetails?.teamA || 'Team A';
+        const teamB = this.currentMatchDetails?.teamB || 'Team B';
+
+        // Check if captain or vice-captain is from specific team
+        const captainData = team.validationResults?.find(p => p.validatedName === team.captain);
+        const viceCaptainData = team.validationResults?.find(p => p.validatedName === team.viceCaptain);
+        
+        const captainFromA = captainData?.team === teamA || (teamA && captainData?.team?.includes(teamA));
+        const captainFromB = captainData?.team === teamB || (teamB && captainData?.team?.includes(teamB));
+        const vcFromA = viceCaptainData?.team === teamA || (teamA && viceCaptainData?.team?.includes(teamA));
+        const vcFromB = viceCaptainData?.team === teamB || (teamB && viceCaptainData?.team?.includes(teamB));
+
+        // Adjust counts if captain/vc is from specific team
+        let effectiveTeamACount = teamCounts.teamACount + (captainFromA ? 0.5 : 0) + (vcFromA ? 0.5 : 0);
+        let effectiveTeamBCount = teamCounts.teamBCount + (captainFromB ? 0.5 : 0) + (vcFromB ? 0.5 : 0);
+
+        if (effectiveTeamACount >= 6) {
+            return `${this.getTeamShortName(teamA)} Stack`;
+        } else if (effectiveTeamBCount >= 6) {
+            return `${this.getTeamShortName(teamB)} Stack`;
+        } else {
+            return 'Even Spread';
+        }
+    }
+
+    // Generate match flow scenario tag
+    generateMatchFlowTag(team) {
+        const composition = this.calculateTeamComposition(team);
+        
+        // Get captain and vice-captain roles
+        const captainData = team.validationResults?.find(p => p.validatedName === team.captain);
+        const viceCaptainData = team.validationResults?.find(p => p.validatedName === team.viceCaptain);
+        
+        const captainRole = captainData?.role || '';
+        const vcRole = viceCaptainData?.role || '';
+        
+        const isCaptainBatter = captainRole.includes('BATSMAN') || captainRole.includes('WK');
+        const isVcBatter = vcRole.includes('BATSMAN') || vcRole.includes('WK');
+        const isCaptainBowler = captainRole.includes('BOWLER');
+        const isVcBowler = vcRole.includes('BOWLER');
+
+        // Calculate total attacking vs defensive players
+        const attackingPlayers = composition.bat + composition.wk; // Batsmen + WK
+        const bowlingPlayers = composition.bowl;
+        const totalPlayers = attackingPlayers + bowlingPlayers + composition.ar;
+
+        // Extreme batting lineup (7+ batsmen/WK)
+        if (attackingPlayers >= 7) {
+            return 'High Scoring Match';
+        }
+        
+        // Very bowling heavy (6+ bowlers)
+        if (bowlingPlayers >= 6) {
+            return 'Collapse Scenario';
+        }
+        
+        // Batting dominant with batter captain/VC (6+ attacking players)
+        if (attackingPlayers >= 6 && (isCaptainBatter || isVcBatter)) {
+            return 'High Scoring Match';
+        }
+        
+        // Bowling dominant with bowler captain/VC (5+ bowlers)
+        if (bowlingPlayers >= 5 && (isCaptainBowler || isVcBowler)) {
+            return 'Collapse Scenario';
+        }
+        
+        // Bowling setup (4+ bowlers with bowling captain/VC)
+        if (bowlingPlayers >= 4 && (isCaptainBowler || isVcBowler)) {
+            return "Bowler's Pitch Setup";
+        }
+
+        // Check if it's reasonably balanced (3-4 in each major category)
+        if (attackingPlayers >= 3 && attackingPlayers <= 5 && bowlingPlayers >= 3 && bowlingPlayers <= 5) {
+            return 'Balanced Setup';
+        }
+
+        // Default for edge cases
+        return 'Balanced Setup';
+    }
+
+    // Generate strategy-based tag  
+    generateStrategyTag(team) {
+        if (!team.validationResults) return 'Unknown Strategy';
+
+        let popularPlayers = 0;
+        let differentialPlayers = 0;
+
+        team.validationResults.forEach(player => {
+            if (!player.isValid) return;
+            
+            // Use player role and team status as proxy for popularity
+            // Popular picks: Top-order batsmen, regular wicket-keepers, main bowlers
+            const role = player.role || '';
+            const isMainPlayer = role.includes('BATSMAN') || role.includes('WK') || 
+                               (role.includes('BOWLER') && !role.includes('AR'));
+            
+            // Consider captain/vice-captain as popular picks
+            const isCaptainOrVC = player.validatedName === team.captain || 
+                                player.validatedName === team.viceCaptain;
+            
+            if (isMainPlayer || isCaptainOrVC) {
+                popularPlayers++;
+            } else if (role.includes('AR') || role === '') {
+                // All-rounders and unknown roles tend to be differential
+                differentialPlayers++;
+            }
+        });
+
+        if (popularPlayers >= 8) {
+            return 'Safe Core Team';
+        } else if (differentialPlayers >= 4) {
+            return 'Differential Attack';
+        } else {
+            return 'Balanced Strategy';
+        }
+    }
+
+    // Generate team preview cards
+    generateTeamPreviewCards() {
+        if (this.currentTeams.length === 0) {
+            return '<div class="text-center text-gray-500 py-8">No teams available</div>';
+        }
+
+        const teamA = this.currentMatchDetails?.teamA || 'Team A';
+        const teamB = this.currentMatchDetails?.teamB || 'Team B';
+
+        return `
+            <div class="space-y-4">
+                ${this.currentTeams.map((team, index) => {
+                    const composition = this.calculateTeamComposition(team);
+                    const teamCounts = this.calculateTeamPlayerCounts(team);
+                    const captainName = team.captain || 'Not selected';
+                    const viceCaptainName = team.viceCaptain || 'Not selected';
+                    
+                    // Get captain and vice-captain details
+                    const captainData = team.validationResults?.find(p => p.validatedName === captainName);
+                    const viceCaptainData = team.validationResults?.find(p => p.validatedName === viceCaptainName);
+                    
+                    return `
+                        <div class="max-w-sm mx-auto">
+                            <!-- Team Title -->
+                            <div class="text-left mb-2">
+                                <h3 class="text-lg font-bold text-gray-900">Team ${index + 1}</h3>
+                            </div>
+                            
+                            <!-- Team Card -->
+                            <div class="relative overflow-hidden rounded-lg shadow-lg" style="background-image: url('https://fantasy.cricbuzz11.com/_next/image?url=https%3A%2F%2Ffantasy.cricbuzz11.com%2Fhulk-static-images%2Fassets%2Fimages%2Fteams%2Fbg-card.jpg&w=384&q=75'); background-size: cover; background-position: center;">
+                            <!-- Card Content -->
+                            <div class="relative p-3">
+                                <!-- Main Content Row -->
+                                <div class="flex items-center justify-between mb-2">
+                                    <!-- Left: Team Names and Counts -->
+                                    <div class="flex space-x-6">
+                                        <!-- Team A Column -->
+                                        <div class="flex flex-col items-center">
+                                            <span class="font-bold text-white" style="font-size: 20px;">${teamCounts.teamACount}</span>
+                                            <div class="text-white" style="font-size: 12px;">${this.getTeamShortName(teamA) || 'WI'}</div>
+                                        </div>
+                                        <!-- Team B Column -->
+                                        <div class="flex flex-col items-center">
+                                            <span class="font-bold text-white" style="font-size: 20px;">${teamCounts.teamBCount}</span>
+                                            <div class="text-white" style="font-size: 12px;">${this.getTeamShortName(teamB) || 'AUS'}</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Right: Captain and Vice Captain -->
+                                    <div class="flex items-center space-x-4">
+                                        <!-- Captain -->
+                                        <div class="flex flex-col items-center w-16">
+                                            <div class="relative mb-1">
+                                                <img src="https://fantasy.cricbuzz11.com/_next/image?url=https%3A%2F%2Fd13ir53smqqeyp.cloudfront.net%2Fplayer-images%2Fdefault-player-image.png&w=96&q=75" 
+                                                     alt="${captainName}" 
+                                                     class="w-10 h-10 rounded-full border-2 border-white object-cover"
+                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                                <div class="w-10 h-10 rounded-full border-2 border-white bg-white flex items-center justify-center text-gray-800 font-bold" style="display: none;">
+                                                    ${captainName.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div class="absolute -top-1 -right-1 w-5 h-5 bg-white text-black text-xs font-bold rounded-full flex items-center justify-center shadow-sm">
+                                                    C
+                                                </div>
+                                            </div>
+                                            <div class="bg-white bg-opacity-95 rounded px-1 py-0.5 w-full">
+                                                <div class="text-xs text-black text-center truncate" title="${captainName}">${captainName.split(' ').length > 1 ? captainName.charAt(0) + ' ' + captainName.split(' ').pop() : captainName}</div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Vice Captain -->
+                                        <div class="flex flex-col items-center w-16">
+                                            <div class="relative mb-1">
+                                                <img src="https://fantasy.cricbuzz11.com/_next/image?url=https%3A%2F%2Fd13ir53smqqeyp.cloudfront.net%2Fplayer-images%2Fdefault-player-image.png&w=96&q=75" 
+                                                     alt="${viceCaptainName}" 
+                                                     class="w-10 h-10 rounded-full border-2 border-white object-cover"
+                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                                <div class="w-10 h-10 rounded-full border-2 border-white bg-white flex items-center justify-center text-gray-800 font-bold" style="display: none;">
+                                                    ${viceCaptainName.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div class="absolute -top-1 -right-1 w-5 h-5 bg-white text-black text-xs font-bold rounded-full flex items-center justify-center shadow-sm">
+                                                    VC
+                                                </div>
+                                            </div>
+                                            <div class="bg-white bg-opacity-95 rounded px-1 py-0.5 w-full">
+                                                <div class="text-xs text-black text-center truncate" title="${viceCaptainName}">${viceCaptainName.split(' ').length > 1 ? viceCaptainName.charAt(0) + ' ' + viceCaptainName.split(' ').pop() : viceCaptainName}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Bottom: Team Composition Stats -->
+                                <div class="flex justify-between text-white mt-1" style="font-size: 12px;">
+                                    <span>WK: <strong>${composition.wk}</strong></span>
+                                    <span>BAT: <strong>${composition.bat}</strong></span>
+                                    <span>AR: <strong>${composition.ar}</strong></span>
+                                    <span>BOWL: <strong>${composition.bowl}</strong></span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Team Analysis Tags (Outside the card) -->
+                        <div class="mt-3">
+                            <div class="flex flex-wrap gap-2">
+                                <span class="bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded font-medium">${this.generateTeamBasedTag(team)}</span>
+                                <span class="bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded font-medium">${this.generateMatchFlowTag(team)}</span>
+                                <span class="bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded font-medium">${this.generateStrategyTag(team)}</span>
+                            </div>
+                        </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    }
 }
 
 // Initialize the tabbed app when DOM is loaded
