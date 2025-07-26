@@ -11,6 +11,16 @@ class TabbedTeamAnalysisApp {
         this.analysisData = null;
         this.activeTab = 'match-stats';
         
+        // Add caching mechanism to prevent repeated API calls
+        this.cache = {
+            eligiblePlayers: new Map(),
+            validationResults: new Map(),
+            teamAnalysisData: new Map(),
+            lastMatchDetails: null
+        };
+        this.lastTabSwitchTime = 0;
+        this.TAB_SWITCH_DEBOUNCE = 1000; // 1 second debounce
+        
         // Test DOM elements immediately
         this.testDOMElements();
         
@@ -82,17 +92,15 @@ class TabbedTeamAnalysisApp {
         document.getElementById('vice-captain-select').addEventListener('change', (e) => this.handleViceCaptainSelection(e));
 
         // Analysis buttons
-        document.getElementById('analyze-all-btn').addEventListener('click', () => this.analyzeAllTeams());
+        document.getElementById('analyze-all-btn').addEventListener('click', () => {
+            this.handleAnalyzeAllTeamsWithLoading();
+        });
 
         // Player validation button
         const validatePlayersBtn = document.getElementById('validate-players-btn');
         if (validatePlayersBtn) {
             validatePlayersBtn.addEventListener('click', async () => {
-                await this.displayTeamDetails();
-                // Update teams summary in real-time after validation
-                this.displayTeamsSummary().catch(error => {
-                    console.error('Error updating teams summary after validation:', error);
-                });
+                this.handleValidatePlayersWithLoading();
             });
         }
     }
@@ -104,6 +112,14 @@ class TabbedTeamAnalysisApp {
 
     async switchTab(tabName) {
         console.log(`Switching to tab: ${tabName}`);
+        
+        // Add debouncing to prevent rapid API calls
+        const now = Date.now();
+        if (now - this.lastTabSwitchTime < this.TAB_SWITCH_DEBOUNCE) {
+            console.log('Tab switch debounced - preventing rapid API calls');
+            return;
+        }
+        this.lastTabSwitchTime = now;
         
         // Update active tab
         this.activeTab = tabName;
@@ -417,7 +433,7 @@ class TabbedTeamAnalysisApp {
                             <!-- Override Button -->
                             <button onclick="window.tabbedApp.showPlayerOverrideModal('${result.inputName}', ${index})" 
                                     class="ml-2 text-xs bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition-colors font-medium">
-                                🔍 Override
+                                Change
                             </button>
                         </div>
                     `;
@@ -462,6 +478,15 @@ class TabbedTeamAnalysisApp {
             }));
         }
 
+        // Create cache key for validation
+        const cacheKey = `${JSON.stringify(players.sort())}-${this.currentMatchDetails.teamA}-${this.currentMatchDetails.teamB}`;
+        
+        // Check if we have cached validation results
+        if (this.cache.validationResults.has(cacheKey)) {
+            console.log('Using cached validation results - avoiding API call');
+            return this.cache.validationResults.get(cacheKey);
+        }
+
         try {
             const response = await fetch(`${CONSTANTS.API_BASE_URL}/validate-players`, {
                 method: 'POST',
@@ -478,6 +503,9 @@ class TabbedTeamAnalysisApp {
             const result = await response.json();
             
             if (result.success) {
+                // Cache the validation results
+                this.cache.validationResults.set(cacheKey, result.validationResults);
+                console.log('Validation results cached successfully');
                 return result.validationResults;
             } else {
                 this.components.toast.showError(result.message || 'Validation failed');
@@ -905,7 +933,7 @@ class TabbedTeamAnalysisApp {
                     <!-- Basic Team List -->
                     <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
                         <h4 class="font-semibold text-sm text-gray-900 mb-3 flex items-center">
-                            <span class="text-primary mr-2">📊</span>
+                            <span class="text-primary mr-2"></span>
                             Uploaded Teams (${this.currentTeams.length})
                         </h4>
                         <div class="space-y-2">
@@ -930,7 +958,7 @@ class TabbedTeamAnalysisApp {
                     <!-- Team Categorization -->
                     <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
                         <h4 class="font-semibold text-sm text-gray-900 mb-3 flex items-center">
-                            <span class="text-primary mr-2">🏏</span>
+                            <span class="text-primary mr-2"></span>
                             Pre-Match Insights
                         </h4>
                         <div class="space-y-3">
@@ -943,7 +971,7 @@ class TabbedTeamAnalysisApp {
                     <!-- Player Analysis -->
                     <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
                         <h4 class="font-semibold text-sm text-gray-900 mb-3 flex items-center">
-                            <span class="text-primary mr-2">👥</span>
+                            <span class="text-primary mr-2"></span>
                             Player Analysis
                         </h4>
                         <div class="space-y-3">
@@ -954,7 +982,7 @@ class TabbedTeamAnalysisApp {
                     <!-- Suggested Fixes -->
                     <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
                         <h4 class="font-semibold text-sm text-gray-900 mb-3 flex items-center">
-                            <span class="text-primary mr-2">💡</span>
+                            <span class="text-primary mr-2"></span>
                             Suggested Fixes
                         </h4>
                         <div class="space-y-2">
@@ -986,27 +1014,39 @@ class TabbedTeamAnalysisApp {
         // Fetch eligible players for the specific match
         let eligiblePlayers = [];
         if (this.currentMatchDetails) {
-            try {
-                const response = await fetch(`${CONSTANTS.API_BASE_URL}/eligible-players`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        teamA: this.currentMatchDetails.teamA,
-                        teamB: this.currentMatchDetails.teamB,
-                        matchDate: this.currentMatchDetails.matchDate
-                    })
-                });
+            // Create cache key for eligible players
+            const eligibleCacheKey = `${this.currentMatchDetails.teamA}-${this.currentMatchDetails.teamB}-${this.currentMatchDetails.matchDate}`;
+            
+            // Check cache first
+            if (this.cache.eligiblePlayers.has(eligibleCacheKey)) {
+                console.log('Using cached eligible players - avoiding API call');
+                eligiblePlayers = this.cache.eligiblePlayers.get(eligibleCacheKey);
+            } else {
+                try {
+                    const response = await fetch(`${CONSTANTS.API_BASE_URL}/eligible-players`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            teamA: this.currentMatchDetails.teamA,
+                            teamB: this.currentMatchDetails.teamB,
+                            matchDate: this.currentMatchDetails.matchDate
+                        })
+                    });
                 
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.success) {
-                        eligiblePlayers = result.players || [];
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.success) {
+                            eligiblePlayers = result.players || [];
+                            // Cache the eligible players result
+                            this.cache.eligiblePlayers.set(eligibleCacheKey, eligiblePlayers);
+                            console.log('Eligible players cached successfully');
+                        }
                     }
+                } catch (error) {
+                    console.error('Failed to fetch eligible players:', error);
                 }
-            } catch (error) {
-                console.error('Failed to fetch eligible players:', error);
             }
         }
 
@@ -1516,7 +1556,7 @@ class TabbedTeamAnalysisApp {
             const suggestedTeams = Math.min(2, analysis.totalTeams);
             fixes.push(`
                 <div class="flex items-start space-x-2 p-3 bg-red-50 rounded-lg border border-red-200">
-                    <span class="text-red-500 mt-0.5">⚠️</span>
+                    <span class="text-red-500 mt-0.5"></span>
                     <div class="flex-1">
                         <div class="font-semibold text-sm text-red-800">Missing Key Player</div>
                         <div class="text-xs text-red-700">Add ${player} to ${suggestedTeams} teams</div>
@@ -1547,7 +1587,7 @@ class TabbedTeamAnalysisApp {
 
             fixes.push(`
                 <div class="flex items-start space-x-2 p-3 bg-orange-50 rounded-lg border border-orange-200">
-                    <span class="text-orange-500 mt-0.5">⚖️</span>
+                    <span class="text-orange-500 mt-0.5"></span>
                     <div class="flex-1">
                         <div class="font-semibold text-sm text-orange-800">Balance Issue</div>
                         <div class="text-xs text-orange-700">${unbalancedTeams.length} teams need better balance - ${reason}</div>
@@ -1561,7 +1601,7 @@ class TabbedTeamAnalysisApp {
         if (teamsWithoutCaptain.length > 0) {
             fixes.push(`
                 <div class="flex items-start space-x-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <span class="text-blue-500 mt-0.5">👑</span>
+                    <span class="text-blue-500 mt-0.5"></span>
                     <div class="flex-1">
                         <div class="font-semibold text-sm text-blue-800">Captain Selection</div>
                         <div class="text-xs text-blue-700">Select captain for ${teamsWithoutCaptain.length} teams</div>
@@ -1608,7 +1648,7 @@ class TabbedTeamAnalysisApp {
                     
                     fixes.push(`
                         <div class="flex items-start space-x-2 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                            <span class="text-yellow-500 mt-0.5">🎯</span>
+                            <span class="text-yellow-500 mt-0.5"></span>
                             <div class="flex-1">
                                 <div class="font-semibold text-sm text-yellow-800">Team Distribution</div>
                                 <div class="text-xs text-yellow-700">Too many ${dominantTeam} players. Consider adding more ${underrepresentedTeam} players for better balance</div>
@@ -1621,7 +1661,7 @@ class TabbedTeamAnalysisApp {
 
         return fixes.length > 0 ? fixes.join('') : `
             <div class="text-center text-gray-500 text-sm py-4">
-                All teams look well-balanced! 🎉
+                All teams look well-balanced!
             </div>
         `;
     }
@@ -1634,6 +1674,18 @@ class TabbedTeamAnalysisApp {
             return;
         }
 
+        // Create cache key for this match
+        const cacheKey = `${this.currentMatchDetails.teamA}-${this.currentMatchDetails.teamB}-${this.currentMatchDetails.matchDate}`;
+        
+        // Check if we have cached data for this match
+        if (this.cache.teamAnalysisData.has(cacheKey)) {
+            console.log('Using cached team analysis data - avoiding API call');
+            const cachedData = this.cache.teamAnalysisData.get(cacheKey);
+            this.populateTeamFormData(cachedData.teamFormData);
+            this.populateHeadToHeadData(cachedData.headToHeadData);
+            return;
+        }
+
         try {
             // Fetch real data from APIs
             const [teamFormData, headToHeadData] = await Promise.all([
@@ -1641,10 +1693,17 @@ class TabbedTeamAnalysisApp {
                 this.fetchHeadToHead()
             ]);
 
+            // Cache the data for future use
+            this.cache.teamAnalysisData.set(cacheKey, {
+                teamFormData,
+                headToHeadData,
+                timestamp: Date.now()
+            });
+
             // Populate with real data
             this.populateTeamFormData(teamFormData);
             this.populateHeadToHeadData(headToHeadData);
-            console.log('Additional team analysis data loaded successfully from API');
+            console.log('Additional team analysis data loaded successfully from API and cached');
 
         } catch (error) {
             console.error('Error loading additional team analysis data:', error);
@@ -2611,6 +2670,63 @@ class TabbedTeamAnalysisApp {
                 }).join('')}
             </div>
         `;
+    }
+
+    // Loading state handlers to prevent multiple rapid clicks
+    async handleAnalyzeAllTeamsWithLoading() {
+        const analyzeBtn = document.getElementById('analyze-all-btn');
+        if (!analyzeBtn) return;
+
+        // Check if already loading
+        if (analyzeBtn.disabled) {
+            console.log('Analysis already in progress');
+            return;
+        }
+
+        // Set loading state
+        const originalText = analyzeBtn.textContent;
+        analyzeBtn.disabled = true;
+        analyzeBtn.textContent = 'Analyzing...';
+        analyzeBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+        try {
+            await this.analyzeAllTeams();
+        } finally {
+            // Reset button state
+            analyzeBtn.disabled = false;
+            analyzeBtn.textContent = originalText;
+            analyzeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    }
+
+    async handleValidatePlayersWithLoading() {
+        const validateBtn = document.getElementById('validate-players-btn');
+        if (!validateBtn) return;
+
+        // Check if already loading
+        if (validateBtn.disabled) {
+            console.log('Validation already in progress');
+            return;
+        }
+
+        // Set loading state
+        const originalText = validateBtn.textContent;
+        validateBtn.disabled = true;
+        validateBtn.textContent = 'Validating...';
+        validateBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+        try {
+            await this.displayTeamDetails();
+            // Update teams summary in real-time after validation
+            await this.displayTeamsSummary().catch(error => {
+                console.error('Error updating teams summary after validation:', error);
+            });
+        } finally {
+            // Reset button state
+            validateBtn.disabled = false;
+            validateBtn.textContent = originalText;
+            validateBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
     }
 }
 
