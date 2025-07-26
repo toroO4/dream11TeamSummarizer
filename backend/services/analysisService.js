@@ -99,7 +99,7 @@ CRITICAL: You MUST use the exact headings above and provide MAX 12 words for eac
         messages: [
             {
                 role: "system",
-                content: "You are an IPL 2025 fantasy cricket expert. You MUST ALWAYS respond with the EXACT format requested: Team Balance, Captaincy Choice, Match Advantage, Venue Strategy, Covariance Analysis, Pitch Conditions, and Overall Rating. Use the exact headings provided and write MAX 12 words for each section. Add ratings [Rating: X/10] for Team Balance, Captaincy Choice, and Covariance Analysis. Be extremely concise and direct. Do NOT include 'Bottom-line' or any other sections. Never deviate from this format. No generic advice, no emojis, no fantasy points."
+                content: "You are an IPL 2025 fantasy cricket expert with deep knowledge of player roles, team compositions, venue conditions, and match dynamics. You MUST ALWAYS respond with the EXACT format requested: Team Balance, Captaincy Choice, Match Advantage, Venue Strategy, Covariance Analysis, Pitch Conditions, and Overall Rating. Use the exact headings provided and write MAX 12 words for each section. Add ratings [Rating: X/10] for Team Balance, Captaincy Choice, and Covariance Analysis. Analyze all provided data including player roles, team affiliations, recent form, head-to-head records, venue statistics, and individual performance. Think like a human expert who considers all factors. Be extremely concise and direct. Do NOT include 'Bottom-line' or any other sections. Never deviate from this format. No generic advice, no emojis, no fantasy points."
             },
             {
                 role: "user",
@@ -122,47 +122,143 @@ CRITICAL: You MUST use the exact headings above and provide MAX 12 words for eac
     };
 }
 
-async function teamSummary({ teamA, teamB, matchDate, players, captain, viceCaptain, venueStatsData }) {
-  if (!teamA || !teamB || !matchDate || !players || !Array.isArray(players)) {
+async function teamSummary({ teamA, teamB, matchDate, players, captain, viceCaptain, composition, teamFormData, headToHeadData, venueStatsData, teamMetadata }) {
+  // Handle both old and new data formats for backward compatibility
+  const isEnhancedFormat = players && Array.isArray(players) && typeof players[0] === 'object';
+  const playersArray = isEnhancedFormat ? players : (Array.isArray(players) ? players : []);
+  
+  if (!teamA || !teamB || !matchDate || !playersArray.length) {
     return { success: false, message: 'Required match data missing' };
   }
   if (!process.env.OPENAI_API_KEY) {
     return { success: false, message: 'OpenAI API key not configured' };
   }
 
-  // Venue info (if available)
+  // Enhanced player information with roles and teams
+  let playerDetails = '';
+  let teamComposition = '';
+  let captainAnalysis = '';
+  let viceCaptainAnalysis = '';
+  
+  if (isEnhancedFormat) {
+    // Process enhanced player data
+    const playersByRole = { WK: [], BAT: [], AR: [], BOWL: [] };
+    const playersByTeam = {};
+    
+    playersArray.forEach(player => {
+      const role = player.role.toUpperCase();
+      const team = player.team;
+      const confidence = player.confidence || 1.0;
+      
+      // Categorize by role
+      if (role.includes('WICKET') || role.includes('WK')) {
+        playersByRole.WK.push(`${player.name} (${team})`);
+      } else if (role.includes('BATSMAN') || role.includes('BAT')) {
+        playersByRole.BAT.push(`${player.name} (${team})`);
+      } else if (role.includes('ALL') || role.includes('AR')) {
+        playersByRole.AR.push(`${player.name} (${team})`);
+      } else if (role.includes('BOWLER') || role.includes('BOWL')) {
+        playersByRole.BOWL.push(`${player.name} (${team})`);
+      } else {
+        playersByRole.BAT.push(`${player.name} (${team})`); // Default to batsman
+      }
+      
+      // Count by team
+      playersByTeam[team] = (playersByTeam[team] || 0) + 1;
+    });
+    
+    playerDetails = `
+WK (${playersByRole.WK.length}): ${playersByRole.WK.join(', ') || 'None'}
+BAT (${playersByRole.BAT.length}): ${playersByRole.BAT.join(', ') || 'None'}  
+AR (${playersByRole.AR.length}): ${playersByRole.AR.join(', ') || 'None'}
+BOWL (${playersByRole.BOWL.length}): ${playersByRole.BOWL.join(', ') || 'None'}
+
+Team Distribution: ${Object.entries(playersByTeam).map(([team, count]) => `${team}: ${count}`).join(', ')}`;
+
+    // Captain analysis
+    const captainData = playersArray.find(p => p.name === captain);
+    if (captainData) {
+      captainAnalysis = `Captain: ${captain} (${captainData.role}, ${captainData.team})`;
+    }
+    
+    // Vice-captain analysis  
+    const viceCaptainData = playersArray.find(p => p.name === viceCaptain);
+    if (viceCaptainData) {
+      viceCaptainAnalysis = `Vice-Captain: ${viceCaptain} (${viceCaptainData.role}, ${viceCaptainData.team})`;
+    }
+  } else {
+    // Fallback for old format
+    playerDetails = `Players: ${playersArray.join(', ')}`;
+    captainAnalysis = `Captain: ${captain || 'Not selected'}`;
+    viceCaptainAnalysis = `Vice-Captain: ${viceCaptain || 'Not selected'}`;
+  }
+
+  // Team composition analysis
+  if (composition) {
+    teamComposition = `\nTeam Balance: WK ${composition.wicketKeepers}, BAT ${composition.batsmen}, AR ${composition.allRounders}, BOWL ${composition.bowlers}
+${teamA} Players: ${composition.teamAPlayers}, ${teamB} Players: ${composition.teamBPlayers}`;
+  }
+
+  // Enhanced venue information
   let venueInfo = '';
   let venueName = '';
-  if (venueStatsData && venueStatsData.success && venueStatsData.data && venueStatsData.data.venueStats) {
-    const v = venueStatsData.data.venueStats;
+  if (venueStatsData && venueStatsData.venueStats) {
+    const v = venueStatsData.venueStats;
     venueName = v.venue_name || '';
-    venueInfo = `Venue: ${v.venue_name || 'Unknown'} (${v.location || ''})\nAvg 1st Inn: ${v.avg_first_innings_score || 'N/A'}, Avg 2nd Inn: ${v.avg_second_innings_score || 'N/A'}\nPitch: ${v.pitch_type || 'neutral'} (${v.pitch_rating || 'balanced'})`;
+    venueInfo = `
+VENUE ANALYSIS:
+${v.venue_name || 'Unknown'} (${v.location || ''})
+Pitch Type: ${v.pitch_type || 'neutral'} (${v.pitch_rating || 'balanced'})
+Average Scores: 1st Innings ${v.avg_first_innings_score || 'N/A'}, 2nd Innings ${v.avg_second_innings_score || 'N/A'}
+Chase Success Rate: ${v.chase_success_rate || 'N/A'}%
+Toss Strategy: ${v.toss_decision_suggestion || 'Field first'}`;
   }
 
-  // Head-to-head (from view)
+  // Enhanced team form information
+  let teamFormInfo = '';
+  if (teamFormData) {
+    const teamAForm = teamFormData.teamA;
+    const teamBForm = teamFormData.teamB;
+    
+    if (teamAForm && teamBForm) {
+      const teamAFormSeq = teamAForm.matches ? teamAForm.matches.map(m => m.result?.charAt(0) || 'D').join('-') : 'N/A';
+      const teamBFormSeq = teamBForm.matches ? teamBForm.matches.map(m => m.result?.charAt(0) || 'D').join('-') : 'N/A';
+      
+      teamFormInfo = `
+RECENT TEAM FORM:
+${teamA}: ${teamAFormSeq} (${teamAForm.matches?.filter(m => m.result === 'Win').length || 0}/5 wins)
+${teamB}: ${teamBFormSeq} (${teamBForm.matches?.filter(m => m.result === 'Win').length || 0}/5 wins)`;
+    }
+  }
+
+  // Enhanced head-to-head information
   let h2hInfo = '';
-  const h2h = await fetchHeadToHead(teamA, teamB, venueName);
-  if (h2h) {
-    h2hInfo = `Head-to-Head at ${h2h.venue_name}: ${h2h.team1} vs ${h2h.team2}, Matches: ${h2h.total_matches}, Avg Scores: ${h2h.team1_avg_score} - ${h2h.team2_avg_score}`;
+  if (headToHeadData) {
+    h2hInfo = `
+HEAD-TO-HEAD RECORD:
+${teamA}: ${headToHeadData.teamAWins || 0} wins
+${teamB}: ${headToHeadData.teamBWins || 0} wins
+Total Matches: ${headToHeadData.totalMatches || 0}
+Win Rate: ${teamA} ${headToHeadData.teamAWins && headToHeadData.totalMatches ? Math.round((headToHeadData.teamAWins / headToHeadData.totalMatches) * 100) : 0}%, ${teamB} ${headToHeadData.teamBWins && headToHeadData.totalMatches ? Math.round((headToHeadData.teamBWins / headToHeadData.totalMatches) * 100) : 0}%`;
   }
 
-  // Player performance (from view)
+  // Player performance from database
   let playerPerformanceInfo = '';
   if (captain) {
     const capPerf = await fetchPlayerPerformance(captain, teamA) || await fetchPlayerPerformance(captain, teamB);
     if (capPerf) {
-      playerPerformanceInfo += `Captain (${captain}): ${capPerf.role || ''}, Runs: ${capPerf.total_runs || 0}, Wickets: ${capPerf.total_wickets || 0}\n`;
+      playerPerformanceInfo += `\nCAPTAIN PERFORMANCE:\n${captain}: ${capPerf.role || ''}, Total Runs: ${capPerf.total_runs || 0}, Total Wickets: ${capPerf.total_wickets || 0}, Matches: ${capPerf.total_matches || 0}`;
     }
   }
   if (viceCaptain) {
     const vcPerf = await fetchPlayerPerformance(viceCaptain, teamA) || await fetchPlayerPerformance(viceCaptain, teamB);
     if (vcPerf) {
-      playerPerformanceInfo += `Vice-Captain (${viceCaptain}): ${vcPerf.role || ''}, Runs: ${vcPerf.total_runs || 0}, Wickets: ${vcPerf.total_wickets || 0}`;
+      playerPerformanceInfo += `\nVICE-CAPTAIN PERFORMANCE:\n${viceCaptain}: ${vcPerf.role || ''}, Total Runs: ${vcPerf.total_runs || 0}, Total Wickets: ${vcPerf.total_wickets || 0}, Matches: ${vcPerf.total_matches || 0}`;
     }
   }
 
-  // Build the prompt with strict template
-  const prompt = `Analyze the fantasy cricket team for the ${teamA} vs ${teamB} match on ${matchDate} IPL 2025 match at ${venueName || 'Unknown Venue'}.
+  // Build comprehensive prompt with all available data
+  const prompt = `Analyze this fantasy cricket team for the ${teamA} vs ${teamB} match on ${matchDate} IPL 2025 at ${venueName || 'Unknown Venue'}.
 
 You MUST respond in EXACTLY this format with these exact headings:
 
@@ -187,16 +283,15 @@ You MUST respond in EXACTLY this format with these exact headings:
 **Overall Rating:**
 [Write MAX 12 words with final summary and rating out of 10]
 
-TEAM DATA:
-Players: ${players.join(', ')}
-Captain: ${captain || 'Not selected'}
-Vice-Captain: ${viceCaptain || 'Not selected'}
+COMPREHENSIVE TEAM DATA:
+${playerDetails}
+${teamComposition}
+${captainAnalysis}
+${viceCaptainAnalysis}${venueInfo}${teamFormInfo}${h2hInfo}${playerPerformanceInfo}
 
-${venueInfo ? 'VENUE INFO:\n' + venueInfo : ''}
-${h2hInfo ? 'HEAD-TO-HEAD:\n' + h2hInfo : ''}
-${playerPerformanceInfo ? 'PLAYER PERFORMANCE:\n' + playerPerformanceInfo : ''}
+${teamMetadata ? `\nTEAM METADATA:\nTeam Name: ${teamMetadata.teamName}\nValidation: ${teamMetadata.validationStatus}\nValid Players: ${teamMetadata.totalValidPlayers}/11` : ''}
 
-CRITICAL: You MUST use the exact headings above and provide MAX 12 words for each section. Be extremely concise and direct. Add ratings [Rating: X/10] for Team Balance, Captaincy Choice, and Covariance Analysis. Do not add any other sections like "Bottom-line" or change the format.`;
+CRITICAL: You MUST use the exact headings above and provide MAX 12 words for each section. Be extremely concise and direct. Add ratings [Rating: X/10] for Team Balance, Captaincy Choice, and Covariance Analysis. Do not add any other sections like "Bottom-line" or change the format. Use all the comprehensive data provided to give expert insights about team balance, player combinations, venue suitability, and match advantages.`;
 
   const completion = await openai.chat.completions.create({
     model: "gpt-4o",

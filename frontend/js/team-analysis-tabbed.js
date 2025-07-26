@@ -1921,6 +1921,22 @@ class TabbedTeamAnalysisApp {
         return result; // Return the full result object
     }
 
+    async fetchVenueStats() {
+        const response = await fetch(`${CONSTANTS.API_BASE_URL}/venue-stats`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                teamA: this.currentMatchDetails.teamA,
+                teamB: this.currentMatchDetails.teamB,
+                matchDate: this.currentMatchDetails.matchDate
+            })
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch venue stats');
+        const result = await response.json();
+        return result; // Return the full result object
+    }
+
 
 
     async loadVenueAnalysisData() {
@@ -2091,29 +2107,94 @@ class TabbedTeamAnalysisApp {
         try {
             this.components.toast.showSuccess('Starting analysis...');
             
-            // Analyze each team
+            // Fetch common data ONCE for all teams (these don't change per team)
+            console.log('Fetching common match data...');
+            const [commonTeamFormData, commonHeadToHeadData, commonVenueStatsData] = await Promise.all([
+                this.fetchTeamRecentForm(),
+                this.fetchHeadToHead(), 
+                this.fetchVenueStats()
+            ]);
+            
+            console.log('Common data fetched, analyzing teams...');
+            
+            // Analyze each team using the common data
             const analysisPromises = this.currentTeams.map(async (team) => {
                 if (!team.captain || !team.viceCaptain) {
                     return { team: team.name, error: 'Captain/Vice-captain not selected' };
                 }
 
-                const analysisData = {
-                    teamA: this.currentMatchDetails.teamA,
-                    teamB: this.currentMatchDetails.teamB,
-                    matchDate: this.currentMatchDetails.matchDate,
-                    players: team.players,
-                    captain: team.captain,
-                    viceCaptain: team.viceCaptain
-                };
-
                 try {
-                    const summary = await this.components.teamAnalysis.generateTeamSummary(analysisData);
+                    // Prepare enhanced player data with roles, teams, and validation results
+                    const enhancedPlayers = team.validationResults ? 
+                        team.validationResults.filter(p => p.isValid).map(player => ({
+                            name: player.validatedName || player.inputName,
+                            originalName: player.inputName,
+                            role: player.role || 'Unknown',
+                            team: player.team || 'Unknown', 
+                            playerId: player.playerId,
+                            confidence: player.confidence || 1.0,
+                            autoReplaced: player.autoReplaced || false
+                        })) :
+                        team.players.map(playerName => ({
+                            name: playerName,
+                            originalName: playerName,
+                            role: 'Unknown',
+                            team: 'Unknown',
+                            playerId: null,
+                            confidence: 0.5,
+                            autoReplaced: false
+                        }));
+
+                    // Calculate team composition
+                    const composition = this.calculateTeamComposition(team);
+                    const teamCounts = this.calculateTeamPlayerCounts(team);
+
+                    // Enhanced analysis data with comprehensive context (reusing common data)
+                    const enhancedAnalysisData = {
+                        // Basic match details
+                        teamA: this.currentMatchDetails.teamA,
+                        teamB: this.currentMatchDetails.teamB,
+                        matchDate: this.currentMatchDetails.matchDate,
+                        
+                        // Enhanced player data with roles and teams
+                        players: enhancedPlayers,
+                        captain: team.captain,
+                        viceCaptain: team.viceCaptain,
+                        
+                        // Team composition analysis
+                        composition: {
+                            wicketKeepers: composition.wk,
+                            batsmen: composition.bat,
+                            allRounders: composition.ar,
+                            bowlers: composition.bowl,
+                            teamAPlayers: teamCounts.teamACount,
+                            teamBPlayers: teamCounts.teamBCount
+                        },
+                        
+                        // Reuse common data for all teams
+                        teamFormData: commonTeamFormData && commonTeamFormData.success ? commonTeamFormData.data : null,
+                        headToHeadData: commonHeadToHeadData && commonHeadToHeadData.success ? commonHeadToHeadData.data : null,
+                        venueStatsData: commonVenueStatsData && commonVenueStatsData.success ? commonVenueStatsData.data : null,
+                        
+                        // Additional team metadata
+                        teamMetadata: {
+                            teamName: team.name,
+                            source: team.source || 'manual',
+                            validationStatus: team.validationResults ? 'validated' : 'unvalidated',
+                            totalValidPlayers: enhancedPlayers.filter(p => p.confidence > 0.7).length
+                        }
+                    };
+
+                    const summary = await this.components.teamAnalysis.generateTeamSummary(enhancedAnalysisData);
                     return { team: team.name, summary };
                 } catch (error) {
+                    console.error(`Error analyzing team ${team.name}:`, error);
                     return { team: team.name, error: error.message };
                 }
             });
 
+            // Process teams in parallel and show progress
+            this.components.toast.showSuccess(`Analyzing ${this.currentTeams.length} teams...`);
             const results = await Promise.all(analysisPromises);
             
             // Display results
