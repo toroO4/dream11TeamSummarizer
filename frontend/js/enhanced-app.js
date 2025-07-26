@@ -1137,7 +1137,8 @@ class EnhancedCricketAnalyzerApp {
                             <div class="text-xs text-gray-500">${team.players.length} players</div>
                         </div>
                         <div class="text-xs text-gray-500">
-                            ${team.captain ? `C: ${team.captain}` : ''} ${team.viceCaptain ? `VC: ${team.viceCaptain}` : ''}
+                            Captain: ${team.captain || 'Not selected'}<br>
+                            Vice-Captain: ${team.viceCaptain || 'Not selected'}
                         </div>
                     </div>
                 `).join('')}

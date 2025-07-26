@@ -476,6 +476,9 @@ function handleCaptainSelection() {
         currentTeams[selectedTeamIndex] = currentTeamData;
     }
     
+    // Update the team details display in real-time
+    displayAllTeamDetails();
+    
     updateIndividualAnalyzeButton();
 }
 
@@ -488,6 +491,9 @@ function handleViceCaptainSelection() {
         currentTeamData.vice_captain = selectedViceCaptain;
         currentTeams[selectedTeamIndex] = currentTeamData;
     }
+    
+    // Update the team details display in real-time
+    displayAllTeamDetails();
     
     updateIndividualAnalyzeButton();
 }

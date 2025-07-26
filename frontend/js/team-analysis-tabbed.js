@@ -826,6 +826,8 @@ class TabbedTeamAnalysisApp {
         if (this.currentTeamData) {
             this.currentTeamData.captain = e.target.value;
             this.updateTeamData();
+            // Update the summary display in real-time
+            this.displayTeamsSummary();
         }
     }
 
@@ -833,6 +835,8 @@ class TabbedTeamAnalysisApp {
         if (this.currentTeamData) {
             this.currentTeamData.viceCaptain = e.target.value;
             this.updateTeamData();
+            // Update the summary display in real-time
+            this.displayTeamsSummary();
         }
     }
 
