@@ -87,7 +87,13 @@ class TabbedTeamAnalysisApp {
         // Player validation button
         const validatePlayersBtn = document.getElementById('validate-players-btn');
         if (validatePlayersBtn) {
-            validatePlayersBtn.addEventListener('click', () => this.displayTeamDetails());
+            validatePlayersBtn.addEventListener('click', async () => {
+                await this.displayTeamDetails();
+                // Update teams summary in real-time after validation
+                this.displayTeamsSummary().catch(error => {
+                    console.error('Error updating teams summary after validation:', error);
+                });
+            });
         }
     }
 
@@ -215,7 +221,9 @@ class TabbedTeamAnalysisApp {
 
             if (this.currentTeams.length > 0) {
                 this.populateTeamSelector();
-                this.displayTeamsSummary();
+                this.displayTeamsSummary().catch(error => {
+                    console.error('Error displaying teams summary:', error);
+                });
             }
 
         } catch (error) {
@@ -306,6 +314,11 @@ class TabbedTeamAnalysisApp {
             this.currentTeamData = this.currentTeams[teamIndex];
             this.displayTeamDetails();
             this.populateCaptainSelectors();
+            
+            // Update teams summary in real-time when team selection changes
+            this.displayTeamsSummary().catch(error => {
+                console.error('Error updating teams summary after team selection:', error);
+            });
         } else {
             this.selectedTeamIndex = -1;
             this.currentTeamData = null;
@@ -689,6 +702,11 @@ class TabbedTeamAnalysisApp {
         this.displayTeamDetails();
         this.populateCaptainSelectors();
         
+        // Update teams summary in real-time
+        this.displayTeamsSummary().catch(error => {
+            console.error('Error updating teams summary after player override:', error);
+        });
+        
         // Show success toast instead of alert
         this.components.toast.showSuccess(`Player updated to: ${playerName}`);
     }
@@ -747,6 +765,11 @@ class TabbedTeamAnalysisApp {
         this.closePlayerOverrideModal();
         this.displayTeamDetails();
         this.populateCaptainSelectors();
+        
+        // Update teams summary in real-time
+        this.displayTeamsSummary().catch(error => {
+            console.error('Error updating teams summary after player override:', error);
+        });
         
         // Show success toast instead of alert
         this.components.toast.showSuccess(`Player updated to: ${newPlayerName}`);
@@ -827,7 +850,9 @@ class TabbedTeamAnalysisApp {
             this.currentTeamData.captain = e.target.value;
             this.updateTeamData();
             // Update the summary display in real-time
-            this.displayTeamsSummary();
+            this.displayTeamsSummary().catch(error => {
+                console.error('Error updating teams summary:', error);
+            });
         }
     }
 
@@ -836,7 +861,9 @@ class TabbedTeamAnalysisApp {
             this.currentTeamData.viceCaptain = e.target.value;
             this.updateTeamData();
             // Update the summary display in real-time
-            this.displayTeamsSummary();
+            this.displayTeamsSummary().catch(error => {
+                console.error('Error updating teams summary:', error);
+            });
         }
     }
 
@@ -844,10 +871,15 @@ class TabbedTeamAnalysisApp {
         if (this.selectedTeamIndex >= 0) {
             this.currentTeams[this.selectedTeamIndex] = this.currentTeamData;
             sessionStorage.setItem('uploadedTeams', JSON.stringify(this.currentTeams));
+            
+            // Update teams summary in real-time
+            this.displayTeamsSummary().catch(error => {
+                console.error('Error updating teams summary after team data update:', error);
+            });
         }
     }
 
-    displayTeamsSummary() {
+    async displayTeamsSummary() {
         const summaryList = document.getElementById('teams-summary-list');
         
         if (this.currentTeams.length === 0) {
@@ -855,83 +887,130 @@ class TabbedTeamAnalysisApp {
             return;
         }
 
-        // Generate comprehensive team analysis
-        const teamAnalysis = this.generateComprehensiveTeamAnalysis();
-        
+        // Show loading state
         summaryList.innerHTML = `
-            <!-- Team Categorization -->
-            <div class="space-y-4">
-                <!-- Basic Team List -->
-                <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-                    <h4 class="font-semibold text-sm text-gray-900 mb-3 flex items-center">
-                        <span class="text-primary mr-2">📊</span>
-                        Uploaded Teams (${this.currentTeams.length})
-                    </h4>
-                    <div class="space-y-2">
-                        ${this.currentTeams.map((team, index) => `
-            <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                <div class="flex items-center justify-between mb-2">
-                                    <h5 class="font-semibold text-sm text-gray-900">${team.name}</h5>
-                    <span class="text-xs text-gray-500">${team.players.length} players</span>
-                </div>
-                <div class="text-xs text-gray-600 mb-2">
-                    <div>Captain: ${team.captain || 'Not selected'}</div>
-                    <div>Vice-Captain: ${team.viceCaptain || 'Not selected'}</div>
-                </div>
-                <div class="text-xs text-gray-500">
-                    ${team.source === 'screenshot' ? '📸 Screenshot' : '📊 CSV'}
-                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-
-                <!-- Team Categorization -->
-                <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-                    <h4 class="font-semibold text-sm text-gray-900 mb-3 flex items-center">
-                        <span class="text-primary mr-2">🏏</span>
-                        Pre-Match Insights
-                    </h4>
-                    <div class="space-y-3">
-                        ${this.renderTeamCategorization(teamAnalysis)}
-                    </div>
-                </div>
-
-                <!-- Player Analysis -->
-                <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-                    <h4 class="font-semibold text-sm text-gray-900 mb-3 flex items-center">
-                        <span class="text-primary mr-2">👥</span>
-                        Player Analysis
-                    </h4>
-                    <div class="space-y-3">
-                        ${this.renderPlayerAnalysis(teamAnalysis)}
-                    </div>
-                </div>
-
-                <!-- Suggested Fixes -->
-                <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-                    <h4 class="font-semibold text-sm text-gray-900 mb-3 flex items-center">
-                        <span class="text-primary mr-2">💡</span>
-                        Suggested Fixes
-                    </h4>
-                    <div class="space-y-2">
-                        ${this.renderSuggestedFixes(teamAnalysis)}
-                    </div>
-                </div>
+            <div class="flex items-center justify-center py-8">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <span class="ml-3 text-gray-600">Analyzing teams with match data...</span>
             </div>
         `;
+
+        try {
+            // Generate comprehensive team analysis with real match data
+            const teamAnalysis = await this.generateComprehensiveTeamAnalysis();
+            
+            summaryList.innerHTML = `
+                <!-- Team Categorization -->
+                <div class="space-y-4">
+                    <!-- Basic Team List -->
+                    <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                        <h4 class="font-semibold text-sm text-gray-900 mb-3 flex items-center">
+                            <span class="text-primary mr-2">📊</span>
+                            Uploaded Teams (${this.currentTeams.length})
+                        </h4>
+                        <div class="space-y-2">
+                            ${this.currentTeams.map((team, index) => `
+                <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                    <div class="flex items-center justify-between mb-2">
+                        <h5 class="font-semibold text-sm text-gray-900">${team.name}</h5>
+                        <span class="text-xs text-gray-500">${team.players.length} players</span>
+                    </div>
+                    <div class="text-xs text-gray-600 mb-2">
+                        <div>Captain: ${team.captain || 'Not selected'}</div>
+                        <div>Vice-Captain: ${team.viceCaptain || 'Not selected'}</div>
+                    </div>
+                    <div class="text-xs text-gray-500">
+                        ${team.source === 'screenshot' ? '📸 Screenshot' : '📊 CSV'}
+                    </div>
+                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Team Categorization -->
+                    <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                        <h4 class="font-semibold text-sm text-gray-900 mb-3 flex items-center">
+                            <span class="text-primary mr-2">🏏</span>
+                            Pre-Match Insights
+                        </h4>
+                        <div class="space-y-3">
+                            ${this.renderTeamCategorization(teamAnalysis)}
+                        </div>
+                    </div>
+
+
+
+                    <!-- Player Analysis -->
+                    <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                        <h4 class="font-semibold text-sm text-gray-900 mb-3 flex items-center">
+                            <span class="text-primary mr-2">👥</span>
+                            Player Analysis
+                        </h4>
+                        <div class="space-y-3">
+                            ${this.renderPlayerAnalysis(teamAnalysis)}
+                        </div>
+                    </div>
+
+                    <!-- Suggested Fixes -->
+                    <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                        <h4 class="font-semibold text-sm text-gray-900 mb-3 flex items-center">
+                            <span class="text-primary mr-2">💡</span>
+                            Suggested Fixes
+                        </h4>
+                        <div class="space-y-2">
+                            ${this.renderSuggestedFixes(teamAnalysis)}
+                        </div>
+                    </div>
+                </div>
+            `;
+        } catch (error) {
+            console.error('Error generating team analysis:', error);
+            summaryList.innerHTML = `
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div class="text-red-800 font-medium">Error loading analysis</div>
+                    <div class="text-red-600 text-sm">Failed to fetch match data. Please try again.</div>
+                </div>
+            `;
+        }
     }
 
-    generateComprehensiveTeamAnalysis() {
+    async generateComprehensiveTeamAnalysis() {
         const allPlayers = [];
         const playerCounts = {};
         const teamCompositions = [];
-        const indianPlayers = [];
-        const englishPlayers = [];
+        const teamAPlayers = [];
+        const teamBPlayers = [];
         const battingHeavyTeams = [];
         const bowlingHeavyTeams = [];
 
-        // Collect all players and analyze teams
+        // Fetch eligible players for the specific match
+        let eligiblePlayers = [];
+        if (this.currentMatchDetails) {
+            try {
+                const response = await fetch(`${CONSTANTS.API_BASE_URL}/eligible-players`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        teamA: this.currentMatchDetails.teamA,
+                        teamB: this.currentMatchDetails.teamB,
+                        matchDate: this.currentMatchDetails.matchDate
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        eligiblePlayers = result.players || [];
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to fetch eligible players:', error);
+            }
+        }
+
+        // Collect all players and analyze teams based on validation results
         this.currentTeams.forEach((team, teamIndex) => {
             const teamPlayers = team.players || [];
             const composition = this.analyzeTeamComposition(teamPlayers);
@@ -942,21 +1021,48 @@ class TabbedTeamAnalysisApp {
                 players: teamPlayers
             });
 
-            // Categorize by nationality and count players
+            // Count players based on validation results from players tab
+            if (team.validationResults) {
+                team.validationResults.forEach(validationResult => {
+                    if (validationResult.isValid && validationResult.team) {
+                        // Count based on validated team information
+                        if (validationResult.team === this.currentMatchDetails?.teamA) {
+                            teamAPlayers.push({ player: validationResult.validatedName || validationResult.inputName, team: team.name });
+                        } else if (validationResult.team === this.currentMatchDetails?.teamB) {
+                            teamBPlayers.push({ player: validationResult.validatedName || validationResult.inputName, team: team.name });
+                        }
+                    }
+                });
+            } else {
+                // Fallback: Use original categorization if no validation results
+                teamPlayers.forEach(player => {
+                    // Check if player belongs to team A or B
+                    const eligiblePlayer = eligiblePlayers.find(ep => 
+                        ep.player_name.toLowerCase() === player.toLowerCase()
+                    );
+                    
+                    if (eligiblePlayer) {
+                        if (eligiblePlayer.team_name === this.currentMatchDetails?.teamA) {
+                            teamAPlayers.push({ player, team: team.name });
+                        } else if (eligiblePlayer.team_name === this.currentMatchDetails?.teamB) {
+                            teamBPlayers.push({ player, team: team.name });
+                        }
+                    } else {
+                        // Fallback: Try to categorize based on known player-team mappings
+                        const categorizedTeam = this.categorizePlayerByTeam(player, this.currentMatchDetails?.teamA, this.currentMatchDetails?.teamB);
+                        if (categorizedTeam) {
+                            if (categorizedTeam === this.currentMatchDetails?.teamA) {
+                                teamAPlayers.push({ player, team: team.name });
+                            } else if (categorizedTeam === this.currentMatchDetails?.teamB) {
+                                teamBPlayers.push({ player, team: team.name });
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Count player occurrences (normalize player names)
             teamPlayers.forEach(player => {
-                const playerLower = player.toLowerCase();
-                
-                // Check for Indian players
-                if (this.isIndianPlayer(playerLower)) {
-                    indianPlayers.push({ player, team: team.name });
-                }
-                
-                // Check for English players
-                if (this.isEnglishPlayer(playerLower)) {
-                    englishPlayers.push({ player, team: team.name });
-                }
-                
-                // Count player occurrences (normalize player names)
                 const normalizedPlayer = this.normalizePlayerName(player);
                 playerCounts[normalizedPlayer] = (playerCounts[normalizedPlayer] || 0) + 1;
                 allPlayers.push(normalizedPlayer);
@@ -970,20 +1076,158 @@ class TabbedTeamAnalysisApp {
             }
         });
 
-        // Find popular players not in any team
-        const popularPlayersNotSelected = this.findPopularPlayersNotSelected(playerCounts);
+        // Find popular players not in any team based on eligible players
+        const popularPlayersNotSelected = this.findPopularPlayersNotSelected(playerCounts, eligiblePlayers);
+
+        console.log('Team Analysis Summary:', {
+            totalTeams: this.currentTeams.length,
+            teamAPlayersCount: teamAPlayers.length,
+            teamBPlayersCount: teamBPlayers.length,
+            totalPlayers: allPlayers.length,
+            eligiblePlayersCount: eligiblePlayers.length,
+            teamAPlayers: teamAPlayers.map(p => p.player),
+            teamBPlayers: teamBPlayers.map(p => p.player),
+            validationBased: 'Using validation results from players tab'
+        });
 
         return {
             totalTeams: this.currentTeams.length,
             playerCounts,
             teamCompositions,
-            indianPlayers,
-            englishPlayers,
+            teamAPlayers,
+            teamBPlayers,
             battingHeavyTeams,
             bowlingHeavyTeams,
             popularPlayersNotSelected,
-            allPlayers: [...new Set(allPlayers)]
+            allPlayers: [...new Set(allPlayers)],
+            eligiblePlayers
         };
+    }
+
+    categorizePlayerByTeam(playerName, teamA, teamB) {
+        // Comprehensive player-team mapping for fallback categorization
+        const playerNameLower = playerName.toLowerCase().trim();
+        
+        // RCB Players
+        const rcbPlayers = [
+            'virat kohli', 'kohli', 'virat', 'v kohli',
+            'faf du plessis', 'du plessis', 'faf',
+            'glenn maxwell', 'maxwell', 'g maxwell',
+            'dinesh karthik', 'karthik', 'd karthik',
+            'rajat patidar', 'patidar', 'r patidar',
+            'cameron green', 'green', 'c green',
+            'alzarri joseph', 'joseph', 'a joseph',
+            'yash dayal', 'dayal', 'y dayal',
+            'karn sharma', 'karn', 'k sharma',
+            'mahipal lomror', 'lomror', 'm lomror',
+            'suyash prabhudessai', 'prabhudessai', 's prabhudessai',
+            'anuj rawat', 'rawat', 'a rawat',
+            'vijaykumar vyshak', 'vyshak', 'v vyshak',
+            'akash deep', 'akash', 'a deep',
+            'manoj bhandage', 'bhandage', 'm bhandage',
+            'tom curran', 'curran', 't curran',
+            'lockie ferguson', 'ferguson', 'l ferguson'
+        ];
+        
+        // PBKS Players
+        const pbksPlayers = [
+            'shikhar dhawan', 'dhawan', 's dhawan',
+            'jonny bairstow', 'bairstow', 'j bairstow',
+            'liam livingstone', 'livingstone', 'l livingstone',
+            'sam curran', 's curran',
+            'kagiso rabada', 'rabada', 'k rabada',
+            'rahul chahar', 'chahar', 'r chahar',
+            'harpreet brar', 'brar', 'h brar',
+            'jitesh sharma', 'jitesh', 'j sharma',
+            'shahrukh khan', 'shahrukh', 's khan',
+            'prabhsimran singh', 'prabhsimran', 'p singh',
+            'atharva taide', 'taide', 'a taide',
+            'bhanuka rajapaksa', 'rajapaksa', 'b rajapaksa',
+            'rishabh pant', 'pant', 'r pant',
+            'arshdeep singh', 'arshdeep', 'a singh',
+            'nathan ellis', 'ellis', 'n ellis',
+            'kagiso rabada', 'rabada', 'k rabada',
+            'rahul chahar', 'chahar', 'r chahar'
+        ];
+        
+        // CSK Players
+        const cskPlayers = [
+            'ms dhoni', 'dhoni', 'm s dhoni',
+            'ravindra jadeja', 'jadeja', 'r jadeja',
+            'ruturaj gaikwad', 'gaikwad', 'r gaikwad',
+            'devon conway', 'conway', 'd conway',
+            'ben stokes', 'stokes', 'b stokes',
+            'moeen ali', 'ali', 'm ali',
+            'shivam dube', 'dube', 's dube',
+            'deepak chahar', 'chahar', 'd chahar',
+            'ajinkya rahane', 'rahane', 'a rahane',
+            'mitchell santner', 'santner', 'm santner',
+            'tushar deshpande', 'deshpande', 't deshpande',
+            'rajvardhan hangargekar', 'hangargekar', 'r hangargekar',
+            'simarjeet singh', 'simarjeet', 's singh',
+            'sisanda magala', 'magala', 's magala',
+            'kyle jamieson', 'jamieson', 'k jamieson',
+            'ben stokes', 'stokes', 'b stokes'
+        ];
+        
+        // MI Players
+        const miPlayers = [
+            'rohit sharma', 'sharma', 'r sharma',
+            'suryakumar yadav', 'suryakumar', 's yadav',
+            'ishan kishan', 'ishan', 'i kishan',
+            'tilak varma', 'tilak', 't varma',
+            'tim david', 'david', 't david',
+            'cameron green', 'green', 'c green',
+            'jasprit bumrah', 'bumrah', 'j bumrah',
+            'piyush chawla', 'chawla', 'p chawla',
+            'hritik shokeen', 'shokeen', 'h shokeen',
+            'arjun tendulkar', 'arjun', 'a tendulkar',
+            'kumar kartikeya', 'kartikeya', 'k kartikeya',
+            'ramandeep singh', 'ramandeep', 'r singh',
+            'nehal wadhera', 'nehal', 'n wadhera',
+            'tristan stubbs', 'stubbs', 't stubbs',
+            'jason behrendorff', 'behrendorff', 'j behrendorff',
+            'sandeep warrier', 'warrier', 's warrier'
+        ];
+        
+        // KKR Players
+        const kkrPlayers = [
+            'andre russell', 'russell', 'a russell',
+            'sunil narine', 'narine', 's narine',
+            'varun chakravarthy', 'varun', 'v chakravarthy',
+            'venkatesh iyer', 'venkatesh', 'v iyer',
+            'nitish rana', 'rana', 'n rana',
+            'rahmanullah gurbaz', 'gurbaz', 'r gurbaz',
+            'shardul thakur', 'shardul', 's thakur',
+            'anukul roy', 'anukul', 'a roy',
+            'harshit rana', 'harshit', 'h rana',
+            'vaibhav arora', 'vaibhav', 'v arora',
+            'suyash sharma', 'suyash', 's sharma',
+            'narayan jagadeesan', 'jagadeesan', 'n jagadeesan',
+            'litton das', 'litton', 'l das',
+            'david wiese', 'wiese', 'd wiese',
+            'mandeep singh', 'mandeep', 'm singh'
+        ];
+        
+        // Map team names to their player lists
+        const teamPlayerMap = {
+            'Royal Challengers Bengaluru': rcbPlayers,
+            'Punjab Kings': pbksPlayers,
+            'Chennai Super Kings': cskPlayers,
+            'Mumbai Indians': miPlayers,
+            'Kolkata Knight Riders': kkrPlayers
+        };
+        
+        // Check if player belongs to teamA or teamB
+        if (teamA && teamPlayerMap[teamA] && teamPlayerMap[teamA].includes(playerNameLower)) {
+            return teamA;
+        }
+        
+        if (teamB && teamPlayerMap[teamB] && teamPlayerMap[teamB].includes(playerNameLower)) {
+            return teamB;
+        }
+        
+        return null; // Player not found in either team
     }
 
     normalizePlayerName(playerName) {
@@ -1097,47 +1341,78 @@ class TabbedTeamAnalysisApp {
                player.includes('root') || player.includes('morgan') || player.includes('brook');
     }
 
-    findPopularPlayersNotSelected(playerCounts) {
-        // Popular players that should be considered but aren't in any team
-        // Only include players that are NOT currently selected in any team
-        const popularPlayers = [
-            'Travis Head', 'Rashid Khan', 'Andre Russell', 'Glenn Maxwell',
-            'Jos Buttler', 'Ben Stokes', 'Jasprit Bumrah', 'Yuzvendra Chahal',
-            'Hardik Pandya', 'Ravindra Jadeja', 'MS Dhoni', 'Rohit Sharma',
-            'Virat Kohli', 'Rohit Sharma', 'KL Rahul', 'Rishabh Pant'
-        ];
+    findPopularPlayersNotSelected(playerCounts, eligiblePlayers = []) {
+        // Use eligible players from the specific match instead of hardcoded list
+        if (eligiblePlayers.length === 0) {
+            // Fallback to some common players if no eligible players found
+            const fallbackPlayers = [
+                'Virat Kohli', 'Rohit Sharma', 'MS Dhoni', 'Jasprit Bumrah',
+                'Ravindra Jadeja', 'Hardik Pandya', 'KL Rahul', 'Rishabh Pant'
+            ];
+            return fallbackPlayers.filter(player => {
+                const normalizedPlayer = this.normalizePlayerName(player);
+                return !playerCounts[normalizedPlayer];
+            });
+        }
 
-        // Filter out players that are already selected and normalize names
-        return popularPlayers.filter(player => {
+        // Get top players from eligible players (limit to 10 most relevant)
+        const topEligiblePlayers = eligiblePlayers
+            .slice(0, 10)
+            .map(ep => ep.player_name);
+
+        // Filter out players that are already selected
+        return topEligiblePlayers.filter(player => {
             const normalizedPlayer = this.normalizePlayerName(player);
             return !playerCounts[normalizedPlayer];
         });
     }
 
+
+
     renderTeamCategorization(analysis) {
         const categories = [];
 
-        // IND heavy vs ENG heavy
-        const indTeams = [...new Set(analysis.indianPlayers.map(p => p.team))];
-        const engTeams = [...new Set(analysis.englishPlayers.map(p => p.team))];
+        // Team A vs Team B distribution
+        const teamAPlayersCount = analysis.teamAPlayers.length;
+        const teamBPlayersCount = analysis.teamBPlayers.length;
         
-        if (indTeams.length > engTeams.length) {
+        if (this.currentMatchDetails) {
+            const teamAShort = this.getTeamShortName(this.currentMatchDetails.teamA);
+            const teamBShort = this.getTeamShortName(this.currentMatchDetails.teamB);
+            
+            // Show team distribution count
             categories.push({
-                type: 'IND Heavy',
-                description: `${indTeams.length} teams favor Indian players`,
-                color: 'bg-orange-100 text-orange-800 border-orange-200'
+                type: 'Team Distribution',
+                description: `${teamAPlayersCount} ${teamAShort} | ${teamBPlayersCount} ${teamBShort}`,
+                color: 'bg-purple-100 text-purple-800 border-purple-200'
             });
-        } else if (engTeams.length > indTeams.length) {
-            categories.push({
-                type: 'ENG Heavy',
-                description: `${engTeams.length} teams favor English players`,
-                color: 'bg-blue-100 text-blue-800 border-blue-200'
-            });
+            
+            // Show team balance category
+            if (teamAPlayersCount > teamBPlayersCount) {
+                categories.push({
+                    type: `${teamAShort} Heavy`,
+                    description: `${teamAPlayersCount} players favor ${teamAShort}`,
+                    color: 'bg-orange-100 text-orange-800 border-orange-200'
+                });
+            } else if (teamBPlayersCount > teamAPlayersCount) {
+                categories.push({
+                    type: `${teamBShort} Heavy`,
+                    description: `${teamBPlayersCount} players favor ${teamBShort}`,
+                    color: 'bg-blue-100 text-blue-800 border-blue-200'
+                });
+            } else {
+                categories.push({
+                    type: 'Balanced Teams',
+                    description: `Equal mix: ${teamAPlayersCount} ${teamAShort} vs ${teamBPlayersCount} ${teamBShort}`,
+                    color: 'bg-green-100 text-green-800 border-green-200'
+                });
+            }
         } else {
+            // Fallback if no match details
             categories.push({
-                type: 'Balanced',
-                description: 'Equal mix of IND and ENG players',
-                color: 'bg-green-100 text-green-800 border-green-200'
+                type: 'Team Distribution',
+                description: `${teamAPlayersCount} Team A | ${teamBPlayersCount} Team B`,
+                color: 'bg-purple-100 text-purple-800 border-purple-200'
             });
         }
 
@@ -1235,15 +1510,9 @@ class TabbedTeamAnalysisApp {
     renderSuggestedFixes(analysis) {
         const fixes = [];
 
-        // Missing key players - dynamic based on current selections
-        const keyPlayers = ['Travis Head', 'Rashid Khan', 'Andre Russell', 'Glenn Maxwell'];
-        const missingKeyPlayers = keyPlayers.filter(player => {
-            const normalizedPlayer = this.normalizePlayerName(player);
-            return !analysis.playerCounts[normalizedPlayer];
-        });
-
-        if (missingKeyPlayers.length > 0) {
-            const player = missingKeyPlayers[0];
+        // Missing key players - based on eligible players for this match
+        if (analysis.popularPlayersNotSelected && analysis.popularPlayersNotSelected.length > 0) {
+            const player = analysis.popularPlayersNotSelected[0];
             const suggestedTeams = Math.min(2, analysis.totalTeams);
             fixes.push(`
                 <div class="flex items-start space-x-2 p-3 bg-red-50 rounded-lg border border-red-200">
@@ -1299,6 +1568,55 @@ class TabbedTeamAnalysisApp {
                     </div>
                 </div>
             `);
+        }
+
+        // Team distribution suggestions based on match data
+        if (this.currentMatchDetails && analysis.teamAPlayers && analysis.teamBPlayers) {
+            const teamAPlayersCount = analysis.teamAPlayers.length;
+            const teamBPlayersCount = analysis.teamBPlayers.length;
+            const totalPlayers = teamAPlayersCount + teamBPlayersCount;
+            
+            console.log('Team Distribution Analysis:', {
+                teamA: this.currentMatchDetails.teamA,
+                teamB: this.currentMatchDetails.teamB,
+                teamAPlayersCount,
+                teamBPlayersCount,
+                totalPlayers,
+                teamAPlayers: analysis.teamAPlayers.map(p => p.player),
+                teamBPlayers: analysis.teamBPlayers.map(p => p.player)
+            });
+            
+            if (totalPlayers > 0) {
+                const teamAPercentage = Math.round((teamAPlayersCount / totalPlayers) * 100);
+                const teamBPercentage = Math.round((teamBPlayersCount / totalPlayers) * 100);
+                
+                console.log('Team Percentages:', { teamAPercentage, teamBPercentage, difference: Math.abs(teamAPercentage - teamBPercentage) });
+                
+                // Only show team distribution suggestion if:
+                // 1. There's a significant imbalance (more than 40% difference)
+                // 2. There are enough total players to make the suggestion meaningful (at least 6 players)
+                // 3. Both teams have some representation (not completely one-sided)
+                if (Math.abs(teamAPercentage - teamBPercentage) > 40 && totalPlayers >= 6 && teamAPlayersCount > 0 && teamBPlayersCount > 0) {
+                    // If team A is dominant, suggest adding more team B players (and vice versa)
+                    const underrepresentedTeam = teamAPercentage > teamBPercentage ? 
+                        this.getTeamShortName(this.currentMatchDetails.teamB) : 
+                        this.getTeamShortName(this.currentMatchDetails.teamA);
+                    
+                    const dominantTeam = teamAPercentage > teamBPercentage ? 
+                        this.getTeamShortName(this.currentMatchDetails.teamA) : 
+                        this.getTeamShortName(this.currentMatchDetails.teamB);
+                    
+                    fixes.push(`
+                        <div class="flex items-start space-x-2 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                            <span class="text-yellow-500 mt-0.5">🎯</span>
+                            <div class="flex-1">
+                                <div class="font-semibold text-sm text-yellow-800">Team Distribution</div>
+                                <div class="text-xs text-yellow-700">Too many ${dominantTeam} players. Consider adding more ${underrepresentedTeam} players for better balance</div>
+                            </div>
+                        </div>
+                    `);
+                }
+            }
         }
 
         return fixes.length > 0 ? fixes.join('') : `
