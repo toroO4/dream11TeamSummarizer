@@ -18,61 +18,64 @@
     <main class="w-full max-w-sm mx-auto px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 mobile-padding">
         
         <!-- Page Header -->
-        <section class="bg-white rounded shadow-cricket border border-gray-200 p-4 sm:p-6 card-hover animate-fade-in">
-            <div class="flex items-center justify-between mb-4">
+        <section class="bg-white rounded shadow-cricket border border-gray-200 p-3 sm:p-4 card-hover animate-fade-in">
+            <div class="flex items-center justify-between">
                 <div class="flex items-center">
-                    <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center mr-3">
-                        <span class="text-white text-sm font-bold">📊</span>
+                    <div class="w-6 h-6 bg-gray-500 rounded flex items-center justify-center mr-3">
+                        <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+                        </svg>
                     </div>
                     <div>
-                        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 font-primary">Fantasy Teams Summary</h1>
-                        <p class="text-sm text-gray-600">Upload 20+ teams CSV and get comprehensive analysis</p>
+                        <h1 class="text-lg font-bold text-gray-900 font-primary">Teams Analysis</h1>
+                        <p class="text-xs text-gray-600">Bulk analysis for multiple teams</p>
                     </div>
                 </div>
-                <button id="back-to-home" class="text-sm text-purple-600 hover:text-purple-800 font-medium underline">
-                    ← Back to Home
+                <button id="back-to-home" class="text-sm text-primary hover:text-primary/80 font-medium underline">
+                    ← Back
                 </button>
             </div>
         </section>
 
         <!-- CSV Upload Section -->
-        <section class="bg-white rounded shadow-cricket border border-gray-200 p-4 sm:p-6 card-hover animate-fade-in">
-            <div class="flex items-center mb-4">
-                <div class="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded flex items-center justify-center mr-2 sm:mr-3">
-                    <span class="text-white text-xs sm:text-sm font-bold">📄</span>
+        <section class="bg-white rounded shadow-cricket border border-gray-200 p-3 sm:p-4 card-hover animate-fade-in">
+            <div class="flex items-center mb-3">
+                <div class="w-6 h-6 bg-gray-500 rounded flex items-center justify-center mr-3">
+                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                    </svg>
                 </div>
-                <h2 class="text-base sm:text-lg font-bold text-gray-900">Upload Fantasy Teams CSV</h2>
+                <h2 class="text-base font-bold text-gray-900">Upload CSV File</h2>
             </div>
 
-            <div id="csv-upload-area" class="border-2 border-dashed border-gray-300 rounded-lg p-6 sm:p-8 text-center hover:border-purple-500 hover:bg-purple-50/50 transition-all duration-300 cursor-pointer group">
+            <div id="csv-upload-area" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary hover:bg-primary/5 transition-all duration-300 cursor-pointer group">
                 <input type="file" id="csv-file-input" accept=".csv" class="hidden">
                 <div id="csv-upload-content">
-                    <div class="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-gradient-to-br from-purple-500/10 to-indigo-600/10 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                        <svg class="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-12 h-12 mx-auto mb-3 bg-gray-100 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                         </svg>
                     </div>
-                    <p class="text-gray-700 mb-2 font-medium text-sm sm:text-base">Click to upload or drag & drop CSV file</p>
-                    <p class="text-xs sm:text-sm text-gray-500">CSV format up to 2MB</p>
-                    <p class="text-xs text-gray-400 mt-2">📊 Expected format: Team Name, Captain, Vice Captain, Player1-11, Credits, Confidence</p>
-                    <button id="download-csv-template" class="mt-3 text-xs text-purple-600 hover:text-purple-800 font-medium underline">
-                        📥 Download CSV Template
+                    <p class="text-gray-700 mb-2 font-medium text-sm">Click to upload CSV file</p>
+                    <p class="text-xs text-gray-500">CSV format up to 2MB</p>
+                    <button id="download-csv-template" class="mt-3 text-xs text-primary hover:text-primary/80 font-medium underline">
+                        Download Template
                     </button>
                 </div>
                 
                 <!-- Loading State -->
                 <div id="csv-loading" class="hidden">
-                    <div class="relative flex justify-center items-center mb-3 sm:mb-4" style="height: 40px; width: 40px;">
-                        <div class="absolute inset-0 animate-spin rounded-full border-4 border-purple-500/20 border-t-purple-500" style="animation-duration: 1s;"></div>
+                    <div class="relative flex justify-center items-center mb-3" style="height: 40px; width: 40px;">
+                        <div class="absolute inset-0 animate-spin rounded-full border-4 border-primary/20 border-t-primary" style="animation-duration: 1s;"></div>
                     </div>
-                    <p class="text-purple-600 font-semibold text-sm sm:text-base">Processing CSV...</p>
-                    <p class="text-xs sm:text-sm text-gray-500 mt-1">Parsing team data</p>
+                    <p class="text-primary font-semibold text-sm">Processing CSV...</p>
+                    <p class="text-xs text-gray-500 mt-1">Parsing team data</p>
                 </div>
             </div>
 
             <!-- CSV Preview -->
             <div id="csv-preview" class="hidden mt-6">
-                <h3 class="text-sm font-semibold text-gray-700 mb-3">📋 CSV Preview</h3>
+                <h3 class="text-sm font-semibold text-gray-700 mb-3">CSV Preview</h3>
                 <div class="bg-gray-50 rounded-lg p-4 border">
                     <div id="csv-stats" class="grid grid-cols-2 gap-3 mb-4">
                         <!-- CSV stats will be populated here -->
@@ -85,12 +88,14 @@
         </section>
 
         <!-- Match Details Section -->
-        <section class="bg-white rounded shadow-cricket border border-gray-200 p-4 sm:p-6 card-hover animate-fade-in">
-            <div class="flex items-center mb-4">
-                <div class="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-blue-500 to-cyan-600 rounded flex items-center justify-center mr-2 sm:mr-3">
-                    <span class="text-white text-xs sm:text-sm font-bold">🏏</span>
+        <section class="bg-white rounded shadow-cricket border border-gray-200 p-3 sm:p-4 card-hover animate-fade-in">
+            <div class="flex items-center mb-3">
+                <div class="w-6 h-6 bg-gray-500 rounded flex items-center justify-center mr-3">
+                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
                 </div>
-                <h2 class="text-base sm:text-lg font-bold text-gray-900">Match Details</h2>
+                <h2 class="text-base font-bold text-gray-900">Match Details</h2>
             </div>
 
             <div class="space-y-4 mb-6">
@@ -98,27 +103,27 @@
                 <div class="space-y-2">
                     <label for="team-a" class="block text-sm font-medium text-gray-700">Team A</label>
                     <input type="text" id="team-a" placeholder="e.g., England" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
                 </div>
 
                 <!-- Team B -->
                 <div class="space-y-2">
                     <label for="team-b" class="block text-sm font-medium text-gray-700">Team B</label>
                     <input type="text" id="team-b" placeholder="e.g., Pakistan" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
                 </div>
 
                 <!-- Match Date -->
                 <div class="space-y-2">
                     <label for="match-date" class="block text-sm font-medium text-gray-700">Match Date</label>
                     <input type="date" id="match-date" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
                 </div>
 
                 <!-- Format -->
                 <div class="space-y-2">
                     <label for="match-format" class="block text-sm font-medium text-gray-700">Match Format</label>
-                    <select id="match-format" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
+                    <select id="match-format" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
                         <option value="ODI">ODI</option>
                         <option value="T20">T20</option>
                         <option value="Test">Test</option>
@@ -129,13 +134,13 @@
                 <div class="space-y-2">
                     <label for="venue" class="block text-sm font-medium text-gray-700">Venue</label>
                     <input type="text" id="venue" placeholder="e.g., Lord's Cricket Ground, London" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
                 </div>
 
                 <!-- Pitch Condition -->
                 <div class="space-y-2">
                     <label for="pitch-condition" class="block text-sm font-medium text-gray-700">Pitch Condition</label>
-                    <select id="pitch-condition" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
+                    <select id="pitch-condition" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
                         <option value="">Select Pitch Type</option>
                         <option value="Batting-friendly">Batting-friendly</option>
                         <option value="Bowling-friendly">Bowling-friendly</option>
@@ -148,7 +153,7 @@
                 <!-- Weather Condition -->
                 <div class="space-y-2">
                     <label for="weather-condition" class="block text-sm font-medium text-gray-700">Weather Condition</label>
-                    <select id="weather-condition" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500">
+                    <select id="weather-condition" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
                         <option value="">Select Weather</option>
                         <option value="Sunny">Sunny</option>
                         <option value="Overcast">Overcast</option>
@@ -162,33 +167,32 @@
             <!-- Generate Analysis Button -->
             <div class="text-center">
                 <button id="generate-analysis-btn" disabled 
-                        class="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg">
-                    <div class="flex items-center justify-center space-x-2">
-                        <span>🚀</span>
-                        <span>Generate Analysis</span>
-                    </div>
+                        class="bg-primary hover:bg-primary/90 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-2 px-6 rounded-lg transition-all duration-200">
+                    <span>Generate Analysis</span>
                 </button>
-                <p class="text-xs text-gray-500 mt-2">Upload CSV file and fill match details to enable analysis</p>
+                <p class="text-xs text-gray-500 mt-2">Upload CSV and complete match details</p>
             </div>
         </section>
 
         <!-- Analysis Results Section -->
-        <section id="analysis-results" class="hidden bg-white rounded shadow-cricket border border-gray-200 p-4 sm:p-6 card-hover animate-fade-in">
-            <div class="flex items-center mb-4">
-                <div class="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-emerald-500 to-green-600 rounded flex items-center justify-center mr-2 sm:mr-3">
-                    <span class="text-white text-xs sm:text-sm font-bold">📈</span>
+        <section id="analysis-results" class="hidden bg-white rounded shadow-cricket border border-gray-200 p-3 sm:p-4 card-hover animate-fade-in">
+            <div class="flex items-center mb-3">
+                <div class="w-6 h-6 bg-gray-500 rounded flex items-center justify-center mr-3">
+                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z"/>
+                        <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z"/>
+                    </svg>
                 </div>
-                <h2 class="text-base sm:text-lg font-bold text-gray-900">Analysis Results</h2>
+                <h2 class="text-base font-bold text-gray-900">Analysis Results</h2>
             </div>
 
             <!-- Loading State -->
             <div id="analysis-loading" class="hidden text-center py-8">
                 <div class="relative flex justify-center items-center mb-4" style="height: 40px; width: 40px;">
-                    <div class="absolute inset-0 animate-spin rounded-full border-4 border-purple-500/20 border-t-purple-500" style="animation-duration: 1s;"></div>
-                    <div class="absolute inset-0 animate-spin rounded-full border-4 border-indigo-500/20 border-t-indigo-500" style="animation-duration: 1.5s;"></div>
+                    <div class="absolute inset-0 animate-spin rounded-full border-4 border-primary/20 border-t-primary" style="animation-duration: 1s;"></div>
                 </div>
-                <p class="text-purple-600 font-semibold text-sm sm:text-base">Analyzing Fantasy Teams...</p>
-                <p class="text-xs sm:text-sm text-gray-500 mt-1">AI is processing your teams and generating insights</p>
+                <p class="text-primary font-semibold text-sm">Analyzing Teams...</p>
+                <p class="text-xs text-gray-500 mt-1">Processing team data</p>
             </div>
 
             <!-- Analysis Content -->
