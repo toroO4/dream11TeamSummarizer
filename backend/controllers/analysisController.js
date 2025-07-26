@@ -1,4 +1,4 @@
-const { analyzeTeam, teamSummary, analyzeMultipleTeams, generateFocusedTeamComparison, generateFantasyAnalysis } = require('../services/analysisService');
+const { analyzeTeam, teamSummary, analyzeMultipleTeams, generateFocusedTeamComparison, generateFantasyAnalysis, overallTeamSummary } = require('../services/analysisService');
 
 exports.analyzeTeam = async (req, res) => {
     try {
@@ -61,6 +61,23 @@ exports.fantasyAnalysis = async (req, res) => {
         res.status(500).json({ 
             success: false, 
             message: 'Failed to generate fantasy analysis', 
+            error: error.message 
+        });
+    }
+};
+
+exports.overallTeamSummary = async (req, res) => {
+    try {
+        const result = await overallTeamSummary(req.body);
+        if (!result.success) {
+            return res.status(400).json(result);
+        }
+        res.json(result);
+    } catch (error) {
+        console.error('Overall team summary error:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to generate overall team summary', 
             error: error.message 
         });
     }

@@ -2200,6 +2200,11 @@ class TabbedTeamAnalysisApp {
             // Display results
             this.displayAnalysisResults(results);
             
+            // Show Overall Summary button after individual analysis is complete
+            setTimeout(() => {
+                this.showOverallSummaryButton();
+            }, 500); // Small delay to ensure DOM is updated
+            
         } catch (error) {
             console.error('Analysis error:', error);
             this.components.toast.showError('Failed to analyze teams');
@@ -2210,6 +2215,10 @@ class TabbedTeamAnalysisApp {
         // Create a modal or expand the teams summary to show results
         const summaryList = document.getElementById('teams-summary-list');
         
+        if (!summaryList) {
+            return;
+        }
+
         summaryList.innerHTML = results.map(result => {
             if (result.error) {
                 return `
@@ -2233,7 +2242,224 @@ class TabbedTeamAnalysisApp {
             `;
         }).join('');
 
+        // Store results for overall summary
+        this.lastAnalysisResults = results;
+        
         this.components.toast.showSuccess('Analysis completed!');
+    }
+
+    showOverallSummaryButton() {
+        // Try to find the parent container for the teams summary tab
+        const summaryTabContent = document.getElementById('teams-summary-content');
+        const summaryList = document.getElementById('teams-summary-list');
+        
+        if (!summaryTabContent || !summaryList) {
+            return;
+        }
+
+        // Remove existing overall summary section if it exists
+        const existingSection = document.getElementById('overall-summary-section');
+        if (existingSection) {
+            existingSection.remove();
+        }
+        
+        // Create Overall Summary section
+        const overallSummarySection = document.createElement('div');
+        overallSummarySection.id = 'overall-summary-section';
+        overallSummarySection.className = 'mt-6 pt-4 border-t border-gray-200 bg-blue-50 p-4 rounded-lg';
+        overallSummarySection.style.display = 'block';
+        overallSummarySection.style.visibility = 'visible';
+        
+        overallSummarySection.innerHTML = `
+            <div class="space-y-3">
+                <h3 class="text-lg font-bold text-gray-900 text-center">Portfolio Analysis</h3>
+                <button id="overall-summary-btn" class="w-full bg-blue-600 text-white py-3 px-4 rounded font-semibold hover:bg-blue-700 transition-all duration-300 shadow-lg text-sm sm:text-base">
+                    Generate Overall Summary
+                </button>
+                <p class="text-xs text-gray-600 text-center font-inter">Get collective insights across all your teams</p>
+            </div>
+            <div id="overall-summary-result" class="hidden mt-4"></div>
+        `;
+        
+        // Append to summary list (add as last child)
+        summaryList.appendChild(overallSummarySection);
+        
+        // Add event listener for overall summary button
+        const overallBtn = document.getElementById('overall-summary-btn');
+        if (overallBtn) {
+            overallBtn.addEventListener('click', () => {
+                this.generateOverallSummaryWithLoading();
+            });
+        }
+    }
+
+    async generateOverallSummaryWithLoading() {
+        const overallBtn = document.getElementById('overall-summary-btn');
+        const resultDiv = document.getElementById('overall-summary-result');
+        
+        if (!overallBtn || !this.lastAnalysisResults) {
+            return;
+        }
+
+        // Set loading state
+        const originalText = overallBtn.textContent;
+        overallBtn.disabled = true;
+        overallBtn.textContent = 'Generating Overall Summary...';
+        overallBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+                try {
+            // Show loading in result area
+            if (resultDiv) {
+                resultDiv.classList.remove('hidden');
+                resultDiv.innerHTML = `
+                    <div class="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-center py-4">
+                            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mr-3"></div>
+                            <span class="text-gray-600">Analyzing all teams collectively...</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (typeof CONSTANTS === 'undefined') {
+                throw new Error('CONSTANTS is not defined - check if constants.js is loaded');
+            }
+            
+            const overallSummary = await this.generateOverallSummary();
+            this.displayOverallSummary(overallSummary);
+            
+        } catch (error) {
+            this.components.toast.showError(`Failed to generate overall summary: ${error.message}`);
+            
+            if (resultDiv) {
+                resultDiv.innerHTML = `
+                    <div class="bg-red-50 rounded-lg p-4 border border-red-200">
+                        <div class="text-red-800 font-medium">Failed to generate overall summary</div>
+                        <div class="text-red-600 text-sm mt-1">${error.message}</div>
+                    </div>
+                `;
+            }
+        } finally {
+            // Reset button state
+            overallBtn.disabled = false;
+            overallBtn.textContent = originalText;
+            overallBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    }
+
+    async generateOverallSummary() {
+        if (!this.lastAnalysisResults || this.lastAnalysisResults.length === 0) {
+            throw new Error('No analysis results available');
+        }
+
+        // Prepare comprehensive data for overall analysis
+        const overallAnalysisData = {
+            // Match context
+            teamA: this.currentMatchDetails.teamA,
+            teamB: this.currentMatchDetails.teamB,
+            matchDate: this.currentMatchDetails.matchDate,
+            
+            // All teams with their analysis
+            teams: this.currentTeams.map((team, index) => {
+                const analysisResult = this.lastAnalysisResults.find(r => r.team === team.name);
+                
+                // Enhanced player data
+                const enhancedPlayers = team.validationResults ? 
+                    team.validationResults.filter(p => p.isValid).map(player => ({
+                        name: player.validatedName || player.inputName,
+                        role: player.role || 'Unknown',
+                        team: player.team || 'Unknown'
+                    })) :
+                    team.players.map(playerName => ({
+                        name: playerName,
+                        role: 'Unknown',
+                        team: 'Unknown'
+                    }));
+
+                // Team composition
+                const composition = this.calculateTeamComposition(team);
+                const teamCounts = this.calculateTeamPlayerCounts(team);
+                
+                return {
+                    teamName: team.name,
+                    players: enhancedPlayers,
+                    captain: team.captain,
+                    viceCaptain: team.viceCaptain,
+                    composition: {
+                        wicketKeepers: composition.wk,
+                        batsmen: composition.bat,
+                        allRounders: composition.ar,
+                        bowlers: composition.bowl,
+                        teamAPlayers: teamCounts.teamACount,
+                        teamBPlayers: teamCounts.teamBCount
+                    },
+                    individualSummary: analysisResult ? analysisResult.summary : null,
+                    hasError: analysisResult ? !!analysisResult.error : true
+                };
+            })
+        };
+
+        // Call new overall summary API
+        const response = await fetch(`${CONSTANTS.API_BASE_URL}/overall-team-summary`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(overallAnalysisData)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`API request failed: ${response.status} - ${errorText}`);
+        }
+
+        const result = await response.json();
+
+        if (result.success) {
+            if (!result.overallSummary || result.overallSummary.trim() === '') {
+                throw new Error('API returned empty summary content');
+            }
+            return result.overallSummary;
+        } else {
+            throw new Error(result.message || 'Failed to generate overall summary');
+        }
+    }
+
+    displayOverallSummary(summary) {
+        const resultDiv = document.getElementById('overall-summary-result');
+        
+        if (!resultDiv) {
+            return;
+        }
+
+        if (!summary) {
+            resultDiv.innerHTML = `
+                <div class="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+                    <div class="text-yellow-800 font-medium">No summary data received</div>
+                    <div class="text-yellow-600 text-sm mt-1">The API returned an empty response</div>
+                </div>
+            `;
+            return;
+        }
+
+        // Format the summary with better styling
+        const formattedSummary = summary
+            .replace(/\*\*(.*?)\*\*/g, '<strong class="text-primary font-semibold">$1</strong>')
+            .replace(/\n/g, '<br>');
+
+        resultDiv.innerHTML = `
+            <div class="bg-gradient-to-r from-primary/5 to-secondary/5 rounded-lg p-6 border border-primary/20 shadow-lg">
+                <div class="flex items-center mb-4">
+                    
+                    <h3 class="text-lg font-bold text-gray-900">Overall Team Portfolio Analysis</h3>
+                </div>
+                <div class="text-sm text-gray-700 leading-relaxed space-y-3">
+                    ${formattedSummary}
+                </div>
+            </div>
+        `;
+
+        this.components.toast.showSuccess('Overall summary generated!');
     }
 
     // Comparison functionality removed - tab is now empty
@@ -2290,10 +2516,7 @@ class TabbedTeamAnalysisApp {
         return [];
     }
 
-    generateOverallSummary() {
-        console.log('Comparison functionality removed');
-        return '';
-    }
+    // Removed duplicate generateOverallSummary function - was overriding the real API function
 
     generateBestTeamRecommendation() {
         console.log('Comparison functionality removed');
@@ -2772,8 +2995,16 @@ class TabbedTeamAnalysisApp {
 
         try {
             await this.analyzeAllTeams();
-        } finally {
-            // Reset button state
+            // Hide the analyze button after successful analysis
+            analyzeBtn.style.display = 'none';
+            
+            // Also hide the description text
+            const descriptionText = analyzeBtn.nextElementSibling;
+            if (descriptionText && descriptionText.tagName === 'P') {
+                descriptionText.style.display = 'none';
+            }
+        } catch (error) {
+            // Reset button state on error
             analyzeBtn.disabled = false;
             analyzeBtn.textContent = originalText;
             analyzeBtn.classList.remove('opacity-50', 'cursor-not-allowed');

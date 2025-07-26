@@ -1031,10 +1031,224 @@ Your final output should be well-formatted, using headings, bold text, and table
     }
 }
 
+async function overallTeamSummary({ teamA, teamB, matchDate, teams }) {
+    try {
+        // Validate input data
+        if (!teamA || !teamB || !matchDate || !teams || !Array.isArray(teams) || teams.length === 0) {
+            return { 
+                success: false, 
+                message: 'Match details and teams data are required' 
+            };
+        }
+
+        if (!process.env.OPENAI_API_KEY) {
+            return { 
+                success: false, 
+                message: 'OpenAI API key not configured' 
+            };
+        }
+
+        // Analyze team portfolio collectively
+        const portfolioAnalysis = analyzeTeamPortfolio(teams);
+        
+        // Prepare concise team summaries for the prompt
+        const teamSummaries = teams.filter(team => !team.hasError).map(team => {
+            const playersByRole = {
+                WK: team.players.filter(p => p.role.toUpperCase().includes('WICKET') || p.role.toUpperCase().includes('WK')),
+                BAT: team.players.filter(p => p.role.toUpperCase().includes('BATSMAN') || p.role.toUpperCase().includes('BAT')),
+                AR: team.players.filter(p => p.role.toUpperCase().includes('ALL') || p.role.toUpperCase().includes('AR')),
+                BOWL: team.players.filter(p => p.role.toUpperCase().includes('BOWLER') || p.role.toUpperCase().includes('BOWL'))
+            };
+
+            return {
+                name: team.teamName,
+                composition: `${team.composition.wicketKeepers}WK-${team.composition.batsmen}BAT-${team.composition.allRounders}AR-${team.composition.bowlers}BOWL`,
+                teamDistribution: `${teamA}:${team.composition.teamAPlayers}, ${teamB}:${team.composition.teamBPlayers}`,
+                captaincy: `C:${team.captain}, VC:${team.viceCaptain}`,
+                hasIndividualSummary: !!team.individualSummary
+            };
+        });
+
+        // Build comprehensive prompt for overall analysis
+        const prompt = `Analyze this fantasy cricket team portfolio for ${teamA} vs ${teamB} on ${matchDate}.
+
+PORTFOLIO OVERVIEW:
+- Total Teams: ${teams.length}
+- Valid Teams: ${teamSummaries.length}
+- Teams with Errors: ${teams.length - teamSummaries.length}
+
+TEAM PORTFOLIO DATA:
+${teamSummaries.map((team, index) => 
+`Team ${index + 1} (${team.name}): ${team.composition} | ${team.teamDistribution} | ${team.captaincy}`
+).join('\n')}
+
+PORTFOLIO ANALYTICS:
+Core Players (>80% teams): ${portfolioAnalysis.corePlayersText}
+Captain Diversity: ${portfolioAnalysis.captainChoicesText}  
+Vice-Captain Diversity: ${portfolioAnalysis.viceCaptainChoicesText}
+Player Rotation: ${portfolioAnalysis.rotationCount} players
+Team Distribution Strategy: ${portfolioAnalysis.teamDistribution}
+Unique Players: ${portfolioAnalysis.totalPlayers}
+
+Provide a CONCISE overall summary analyzing this portfolio strategy. Focus on:
+
+**Portfolio Strategy:**
+[2-3 sentences about the overall approach and risk profile]
+
+**Team Balance Distribution:**
+[1-2 sentences about composition patterns across teams]
+
+**Captaincy Strategy:**
+[1-2 sentences about captain/vice-captain diversification]
+
+**Risk Assessment:**
+[1-2 sentences about portfolio risk level and exposure]
+
+**Key Recommendations:**
+[2-3 bullet points with specific actionable advice]
+
+**Overall Rating:**
+[1 sentence with portfolio rating out of 10 and brief reasoning]
+
+IMPORTANT: Be extremely concise. No long explanations. Focus on actionable insights. Maximum 150 words total.`;
+
+        // Make OpenAI API call
+        const completion = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+                {
+                    role: "system",
+                    content: "You are a fantasy cricket portfolio analyst. Provide concise, actionable insights about team portfolios. Focus on strategy, risk assessment, and specific recommendations. Be extremely brief - maximum 150 words total. Use bullet points and clear sections as requested. Analyze the collective strategy rather than individual teams."
+                },
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ],
+            max_tokens: 400,
+            temperature: 0.6,
+        });
+
+        const overallSummary = completion.choices[0].message.content;
+
+        return {
+            success: true,
+            overallSummary: overallSummary,
+            message: 'Overall team summary generated successfully',
+            metadata: {
+                totalTeams: teams.length,
+                validTeams: teamSummaries.length,
+                portfolioAnalysis: portfolioAnalysis,
+                processedAt: new Date().toISOString()
+            }
+        };
+
+    } catch (error) {
+        return {
+            success: false,
+            message: 'Failed to generate overall team summary',
+            error: error.message
+        };
+    }
+}
+
+// Helper function to analyze team portfolio collectively  
+function analyzeTeamPortfolio(teams) {
+    if (!teams || teams.length === 0) {
+        return {
+            corePlayersText: 'None identified',
+            captainChoicesText: 'Not specified',
+            viceCaptainChoicesText: 'Not specified',
+            rotationCount: 0,
+            teamDistribution: 'Unknown',
+            totalPlayers: 0
+        };
+    }
+
+    // Calculate player frequency across all teams
+    const playerFrequency = {};
+    const captainFrequency = {};
+    const viceCaptainFrequency = {};
+
+    teams.forEach(team => {
+        if (team.hasError) return;
+        
+        // Count player appearances
+        team.players.forEach(player => {
+            if (player && player.name && player.name.trim()) {
+                playerFrequency[player.name] = (playerFrequency[player.name] || 0) + 1;
+            }
+        });
+
+        // Count captain/vice-captain choices
+        if (team.captain && team.captain.trim()) {
+            captainFrequency[team.captain] = (captainFrequency[team.captain] || 0) + 1;
+        }
+        if (team.viceCaptain && team.viceCaptain.trim()) {
+            viceCaptainFrequency[team.viceCaptain] = (viceCaptainFrequency[team.viceCaptain] || 0) + 1;
+        }
+    });
+
+    const validTeams = teams.filter(team => !team.hasError).length;
+    
+    // Core players (>80% teams)
+    const coreThreshold = Math.ceil(validTeams * 0.8);
+    const corePlayers = Object.entries(playerFrequency)
+        .filter(([, count]) => count >= coreThreshold)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 6); // Top 6 core players
+
+    // Most popular captains
+    const topCaptains = Object.entries(captainFrequency)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 3);
+
+    // Most popular vice-captains
+    const topViceCaptains = Object.entries(viceCaptainFrequency)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 3);
+
+    // Player rotation count (players in <50% of teams)
+    const rotationThreshold = Math.ceil(validTeams * 0.5);
+    const rotationPlayers = Object.entries(playerFrequency)
+        .filter(([, count]) => count < rotationThreshold && count > 1)
+        .length;
+
+    // Format text outputs
+    const corePlayersText = corePlayers.length > 0 
+        ? corePlayers.map(([player, count]) => `${player}(${count})`).join(', ')
+        : 'No core players';
+
+    const captainChoicesText = topCaptains.length > 0
+        ? topCaptains.map(([captain, count]) => `${captain}(${count})`).join(', ')
+        : 'Not specified';
+
+    const viceCaptainChoicesText = topViceCaptains.length > 0
+        ? topViceCaptains.map(([vc, count]) => `${vc}(${count})`).join(', ')
+        : 'Not specified';
+
+    // Team distribution analysis
+    const teamDistribution = `Core: ${corePlayers.length}, Rotation: ${rotationPlayers}, Unique: ${Object.keys(playerFrequency).length - corePlayers.length - rotationPlayers}`;
+
+    return {
+        corePlayersText,
+        captainChoicesText,
+        viceCaptainChoicesText,
+        rotationCount: rotationPlayers,
+        teamDistribution,
+        totalPlayers: Object.keys(playerFrequency).length,
+        corePlayers: corePlayers,
+        topCaptains: topCaptains,
+        topViceCaptains: topViceCaptains,
+        validTeams: validTeams
+    };
+}
+
 module.exports = {
     analyzeTeam,
     teamSummary,
     analyzeMultipleTeams,
     generateFocusedTeamComparison,
-    generateFantasyAnalysis
+    generateFantasyAnalysis,
+    overallTeamSummary
 }; 
