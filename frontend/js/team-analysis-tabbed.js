@@ -2313,8 +2313,8 @@ class TabbedTeamAnalysisApp {
                 resultDiv.classList.remove('hidden');
                 resultDiv.innerHTML = `
                     <div class="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
-                        <div class="flex items-center justify-center py-4">
-                            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mr-3"></div>
+                        <div class="flex flex-col items-center justify-center py-4">
+                            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mb-3"></div>
                             <span class="text-gray-600">Analyzing all teams collectively...</span>
                         </div>
                     </div>
