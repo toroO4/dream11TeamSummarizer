@@ -1241,10 +1241,15 @@ class EnhancedCricketAnalyzerApp {
                 allRounders: 0,
                 wicketKeepers: 0
             },
-            teamStats: []
+            teamStats: [],
+            teamDistribution: {
+                teamA: 0,
+                teamB: 0,
+                unvalidated: 0
+            }
         };
 
-        // Collect all player names
+        // Collect all player names and team distribution
         const allPlayerNames = [];
         teamsData.forEach((team, index) => {
             const teamStats = {
@@ -1257,29 +1262,61 @@ class EnhancedCricketAnalyzerApp {
                     bowlers: 0,
                     allRounders: 0,
                     wicketKeepers: 0
-                }
+                },
+                validatedPlayers: 0,
+                teamAPlayers: 0,
+                teamBPlayers: 0
             };
 
-                    // Count players and collect names
-        if (team.players) {
-            console.log('Team players structure:', team.players);
-            summary.totalPlayers += team.players.length;
-            
-            team.players.forEach(player => {
-                // Debug: Log each player to see its structure
-                console.log('Processing player:', player);
+            // Count players and collect names
+            if (team.players) {
+                console.log('Team players structure:', team.players);
+                summary.totalPlayers += team.players.length;
                 
-                const playerName = player.name || player.player_name || player.Name || player.PlayerName || 
-                                  player.playerName || player.Player || player.player || 
-                                  (typeof player === 'string' ? player : null);
+                team.players.forEach(player => {
+                    // Debug: Log each player to see its structure
+                    console.log('Processing player:', player);
+                    
+                    const playerName = player.name || player.player_name || player.Name || player.PlayerName || 
+                                      player.playerName || player.Player || player.player || 
+                                      (typeof player === 'string' ? player : null);
+                    
+                    if (playerName) {
+                        allPlayerNames.push(playerName);
+                    } else {
+                        console.warn('Could not extract player name from:', player);
+                    }
+                });
+            }
+
+            // Count validated players and team distribution
+            if (team.validationResults && team.validationResults.length > 0) {
+                console.log(`Processing validation results for team ${index + 1}:`, team.validationResults);
+                team.validationResults.forEach(validationResult => {
+                    if (validationResult.isValid && validationResult.team) {
+                        teamStats.validatedPlayers++;
+                        
+                        // Get current match details for team comparison
+                        const currentMatchDetails = this.currentMatchDetails || 
+                            JSON.parse(sessionStorage.getItem('currentMatchDetails') || '{}');
+                        
+                        if (validationResult.team === currentMatchDetails.teamA) {
+                            teamStats.teamAPlayers++;
+                            summary.teamDistribution.teamA++;
+                        } else if (validationResult.team === currentMatchDetails.teamB) {
+                            teamStats.teamBPlayers++;
+                            summary.teamDistribution.teamB++;
+                        }
+                    }
+                });
                 
-                if (playerName) {
-                    allPlayerNames.push(playerName);
-                } else {
-                    console.warn('Could not extract player name from:', player);
-                }
-            });
-        }
+                // Calculate unvalidated players
+                const unvalidatedCount = team.players ? team.players.length - teamStats.validatedPlayers : 0;
+                summary.teamDistribution.unvalidated += unvalidatedCount;
+            } else {
+                // If no validation results, count all as unvalidated
+                summary.teamDistribution.unvalidated += team.players ? team.players.length : 0;
+            }
 
             // Track captains and vice captains
             if (team.captain) summary.captains.push(team.captain);
@@ -1291,25 +1328,25 @@ class EnhancedCricketAnalyzerApp {
         // Use hardcoded role detection directly (no database API call)
         console.log('Using hardcoded role detection for:', allPlayerNames);
         
-                            // Count by role using hardcoded detection
-                    teamsData.forEach((team, index) => {
-                        if (team.players) {
-                            team.players.forEach(player => {
-                                // Debug: Log the entire player object to see its structure
-                                console.log('Player object:', player);
-                                
-                                // Try multiple possible name fields
-                                const playerName = player.name || player.player_name || player.Name || player.PlayerName || 
-                                                  player.playerName || player.Player || player.player || 
-                                                  (typeof player === 'string' ? player : 'Unknown Player');
-                                
-                                const role = this.getPlayerRole(player);
-                                console.log(`Player: ${playerName}, Detected Role: ${role}`);
-                                summary.roleBreakdown[role]++;
-                                summary.teamStats[index].roles[role]++;
-                            });
-                        }
-                    });
+        // Count by role using hardcoded detection
+        teamsData.forEach((team, index) => {
+            if (team.players) {
+                team.players.forEach(player => {
+                    // Debug: Log the entire player object to see its structure
+                    console.log('Player object:', player);
+                    
+                    // Try multiple possible name fields
+                    const playerName = player.name || player.player_name || player.Name || player.PlayerName || 
+                                      player.playerName || player.Player || player.player || 
+                                      (typeof player === 'string' ? player : 'Unknown Player');
+                    
+                    const role = this.getPlayerRole(player);
+                    console.log(`Player: ${playerName}, Detected Role: ${role}`);
+                    summary.roleBreakdown[role]++;
+                    summary.teamStats[index].roles[role]++;
+                });
+            }
+        });
 
         return summary;
     }
@@ -1587,25 +1624,42 @@ class EnhancedCricketAnalyzerApp {
 
 
     displayQuickStats(summaryData) {
-        const quickStats = document.getElementById('quick-stats');
-        if (!quickStats) return;
+        const quickStatsSection = document.getElementById('quick-stats');
+        if (!quickStatsSection) return;
 
-        quickStats.innerHTML = `
-            <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center shadow-sm">
-                <div class="text-2xl font-bold text-blue-600 mb-1">${summaryData.totalTeams}</div>
-                <div class="text-sm text-blue-700 font-medium">Total Teams</div>
-            </div>
-            <div class="bg-green-50 border border-green-200 rounded-xl p-4 text-center shadow-sm">
-                <div class="text-2xl font-bold text-green-600 mb-1">${summaryData.totalPlayers}</div>
-                <div class="text-sm text-green-700 font-medium">Total Players</div>
-            </div>
-            <div class="bg-purple-50 border border-purple-200 rounded-xl p-4 text-center shadow-sm">
-                <div class="text-2xl font-bold text-purple-600 mb-1">${summaryData.captains.length}</div>
-                <div class="text-sm text-purple-700 font-medium">Captains</div>
-            </div>
-            <div class="bg-orange-50 border border-orange-200 rounded-xl p-4 text-center shadow-sm">
-                <div class="text-2xl font-bold text-orange-600 mb-1">${summaryData.viceCaptains.length}</div>
-                <div class="text-sm text-orange-700 font-medium">Vice Captains</div>
+        // Get current match details for team names
+        const currentMatchDetails = this.currentMatchDetails || 
+            JSON.parse(sessionStorage.getItem('currentMatchDetails') || '{}');
+        
+        const teamAShort = currentMatchDetails.teamA ? this.getTeamShortName(currentMatchDetails.teamA) : 'Team A';
+        const teamBShort = currentMatchDetails.teamB ? this.getTeamShortName(currentMatchDetails.teamB) : 'Team B';
+
+        quickStatsSection.innerHTML = `
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <div class="text-xs font-medium text-blue-700">Total Teams</div>
+                    <div class="text-lg font-bold text-blue-900">${summaryData.totalTeams}</div>
+                </div>
+                <div class="bg-green-50 p-3 rounded-lg border border-green-200">
+                    <div class="text-xs font-medium text-green-700">Total Players</div>
+                    <div class="text-lg font-bold text-green-900">${summaryData.totalPlayers}</div>
+                </div>
+                <div class="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                    <div class="text-xs font-medium text-purple-700">${teamAShort} Players</div>
+                    <div class="text-lg font-bold text-purple-900">${summaryData.teamDistribution.teamA}</div>
+                </div>
+                <div class="bg-orange-50 p-3 rounded-lg border border-orange-200">
+                    <div class="text-xs font-medium text-orange-700">${teamBShort} Players</div>
+                    <div class="text-lg font-bold text-orange-900">${summaryData.teamDistribution.teamB}</div>
+                </div>
+                <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                    <div class="text-xs font-medium text-yellow-700">Need Validation</div>
+                    <div class="text-lg font-bold text-yellow-900">${summaryData.teamDistribution.unvalidated}</div>
+                </div>
+                <div class="bg-red-50 p-3 rounded-lg border border-red-200">
+                    <div class="text-xs font-medium text-red-700">Captains Set</div>
+                    <div class="text-lg font-bold text-red-900">${summaryData.captains.filter(c => c !== 'Not specified').length}</div>
+                </div>
             </div>
         `;
     }
@@ -1736,14 +1790,49 @@ Team 2,Mohammed Shami,Bowler,No,No`;
 
     // Make test function available globally for debugging
     static makeTestAvailable() {
-        window.testToast = function() {
-            if (window.enhancedApp) {
-                window.enhancedApp.testToast();
-            } else {
-                alert('Enhanced app not initialized');
-            }
-        };
+        // Make the app instance available globally for testing
+        window.enhancedApp = this;
+        console.log('Enhanced app instance made available globally as window.enhancedApp');
         console.log('Toast test function available. Run testToast() in console to test.');
+    }
+
+    // Add this function to update summary in real-time
+    async updateSummaryInRealTime() {
+        try {
+            console.log('Updating summary in real-time...');
+            
+            // Get current teams data from session storage
+            const teamsData = JSON.parse(sessionStorage.getItem('currentTeams') || '[]');
+            
+            if (teamsData.length > 0) {
+                // Generate updated summary data
+                const updatedSummaryData = await this.generateMiniSummaryData(teamsData);
+                
+                // Update the display
+                this.displayQuickStats(updatedSummaryData);
+                this.displayRoleBreakdown(updatedSummaryData);
+                
+                console.log('Summary updated in real-time:', updatedSummaryData);
+            }
+        } catch (error) {
+            console.error('Error updating summary in real-time:', error);
+        }
+    }
+
+    // Add this function to refresh summary when validation completes
+    async refreshSummaryAfterValidation() {
+        console.log('Refreshing summary after validation...');
+        
+        // Wait a bit for validation to complete
+        setTimeout(async () => {
+            await this.updateSummaryInRealTime();
+        }, 500);
+    }
+
+    // Test function for manual summary update
+    async testSummaryUpdate() {
+        console.log('Testing summary update...');
+        await this.updateSummaryInRealTime();
     }
 }
 

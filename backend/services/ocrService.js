@@ -110,6 +110,20 @@ function parseTeamDataFromOCRText(ocrText) {
     let captain = '';
     let viceCaptain = '';
     
+    // Enhanced player name patterns for better detection
+    const playerNamePatterns = [
+        // Full names with spaces
+        /^[A-Z][a-z]+ [A-Z][a-z]+$/,
+        /^[A-Z][a-z]+ [A-Z][a-z]+ [A-Z][a-z]+$/,
+        // Names with dots (initials)
+        /^[A-Z]\.[A-Z]? [A-Z][a-z]+$/,
+        /^[A-Z][a-z]+ [A-Z]\.[A-Z]?$/,
+        // Names with hyphens
+        /^[A-Z][a-z]+-[A-Z][a-z]+$/,
+        // Single word names (common surnames)
+        /^[A-Z][a-z]{3,}$/
+    ];
+    
     // First pass: Look for role headers and structured player data
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
@@ -167,7 +181,7 @@ function parseTeamDataFromOCRText(ocrText) {
             line.toLowerCase() === 't' ||
             /^[.,;:!@#$%^&*()_+\-=\[\]{}|\\:";'<>?,./]$/.test(line) ||
             line.length < 2 ||
-            line.length > 30 ||
+            line.length > 35 || // Increased max length
             /^(tap|click|select|choose|add|remove|delete|cancel|ok|yes|no)$/i.test(line) ||
             /^(total|runs|wickets|overs|extras|batting|bowling|fielding)$/i.test(line)
         );
@@ -181,18 +195,44 @@ function parseTeamDataFromOCRText(ocrText) {
             continue;
         }
         
-        // Enhanced player name detection - allow captain/vice captain indicators
-        const isValidPlayerName = (
-            /^[A-Za-z\s\.\-'()\[\]]{2,}$/.test(line) &&
-            /[A-Za-z]/.test(line) &&
-            !(line.length <= 3 && line === line.toUpperCase()) &&
-            !['BATTING', 'BOWLING', 'FIELDING', 'EXTRAS', 'TOTAL', 'RUNS', 'WICKETS', 'OVERS'].includes(line.toUpperCase()) &&
-            (line.includes(' ') || (line.length >= 3 && line.length <= 30))
-        );
+        // Enhanced player name detection with multiple validation methods
+        let isValidPlayerName = false;
         
-                    console.log(`Processing line "${line}": isValidPlayerName = ${isValidPlayerName}`);
-            if (isValidPlayerName) {
-                console.log(`  ✅ Line "${line}" passed validation, proceeding to name cleaning`);
+        // Method 1: Check against player name patterns
+        isValidPlayerName = playerNamePatterns.some(pattern => pattern.test(line));
+        
+        // Method 2: Manual validation for edge cases
+        if (!isValidPlayerName) {
+            isValidPlayerName = (
+                /^[A-Za-z\s\.\-'()\[\]]{2,}$/.test(line) &&
+                /[A-Za-z]/.test(line) &&
+                !(line.length <= 3 && line === line.toUpperCase()) &&
+                !['BATTING', 'BOWLING', 'FIELDING', 'EXTRAS', 'TOTAL', 'RUNS', 'WICKETS', 'OVERS'].includes(line.toUpperCase()) &&
+                (line.includes(' ') || (line.length >= 3 && line.length <= 35)) // Increased max length
+            );
+        }
+        
+        // Method 3: Check for common cricket player names
+        if (!isValidPlayerName) {
+            const commonPlayerNames = [
+                'kohli', 'sharma', 'dhoni', 'bumrah', 'jadeja', 'rahul', 'pandya', 'ashwin', 'chahal', 'kumar',
+                'singh', 'patel', 'khan', 'ahmed', 'ali', 'malik', 'yadav', 'verma', 'reddy', 'naik',
+                'gill', 'iyer', 'pant', 'kishan', 'gaikwad', 'jaiswal', 'tripathi', 'samson', 'buttler',
+                'warner', 'smith', 'maxwell', 'starc', 'cummins', 'hazlewood', 'lyon', 'carey', 'marsh',
+                'du plessis', 'livingstone', 'curran', 'rabada', 'chahar', 'brar', 'ellis', 'joseph',
+                'dayal', 'lomror', 'prabhudessai', 'rawat', 'vyshak', 'deep', 'bhandage', 'ferguson',
+                'dhawan', 'bairstow', 'rajapaksa', 'taide', 'conway', 'stokes', 'gaikwad'
+            ];
+            
+            const lineLower = line.toLowerCase();
+            isValidPlayerName = commonPlayerNames.some(name => 
+                lineLower.includes(name) || name.includes(lineLower)
+            );
+        }
+        
+        console.log(`Processing line "${line}": isValidPlayerName = ${isValidPlayerName}`);
+        if (isValidPlayerName) {
+            console.log(`  ✅ Line "${line}" passed validation, proceeding to name cleaning`);
             let cleanName = line.replace(/\d+/g, '').replace(/pts?/gi, '').replace(/\s+/g, ' ').trim();
             console.log(`  Initial cleanName: "${cleanName}"`);
             
@@ -232,7 +272,7 @@ function parseTeamDataFromOCRText(ocrText) {
                 .trim();
             
             console.log(`  Clean name: "${cleanName}", length: ${cleanName.length}, isCaptain: ${isCaptain}, isViceCaptain: ${isViceCaptain}`);
-            if (cleanName.length >= 2 && cleanName.length <= 25 && /^[A-Za-z\s\.\-']+$/.test(cleanName)) {
+            if (cleanName.length >= 2 && cleanName.length <= 35 && /^[A-Za-z\s\.\-']+$/.test(cleanName)) {
                 if (cleanName.length >= 2) {
                     players.push({ 
                         name: cleanName, 
@@ -278,13 +318,12 @@ function parseTeamDataFromOCRText(ocrText) {
             // More lenient player name detection
             const couldBePlayer = (
                 line.length >= 3 && 
-                line.length <= 25 && 
+                line.length <= 35 && 
                 /^[A-Za-z\s\.\-']+$/.test(line) &&
                 !/^(CSK|MI|RCB|KKR|DC|PBKS|RR|SRH|GT|LSG|BATTER|BOWLER|WICKET|KEEPER|ALL|ROUNDER|DREAM11|TEAM|MATCH|SAVE|EDIT|CONFIRM|SUBMIT|PREVIEW|CREDITS|REMAINING|BALANCE|TOTAL|RUNS|WICKETS|OVERS|EXTRAS|BATTING|BOWLING|FIELDING)$/i.test(line) &&
                 !/^\d+$/.test(line) &&
                 !/^\d+\.\d+$/.test(line) &&
                 !/^\d+\s*pts?$/i.test(line) &&
-                line.includes(' ') && // Must have at least one space (first name + last name)
                 !line.toLowerCase().includes('dream11') &&
                 !line.toLowerCase().includes('team') &&
                 !line.toLowerCase().includes('match')
@@ -318,7 +357,10 @@ function parseTeamDataFromOCRText(ocrText) {
                 'kohli', 'sharma', 'dhoni', 'bumrah', 'jadeja', 'rahul', 'pandya', 'ashwin', 'chahal', 'kumar',
                 'singh', 'patel', 'khan', 'ahmed', 'ali', 'malik', 'yadav', 'verma', 'reddy', 'naik',
                 'gill', 'iyer', 'pant', 'kishan', 'gaikwad', 'jaiswal', 'tripathi', 'samson', 'buttler',
-                'warner', 'smith', 'maxwell', 'starc', 'cummins', 'hazlewood', 'lyon', 'carey', 'marsh'
+                'warner', 'smith', 'maxwell', 'starc', 'cummins', 'hazlewood', 'lyon', 'carey', 'marsh',
+                'du plessis', 'livingstone', 'curran', 'rabada', 'chahar', 'brar', 'ellis', 'joseph',
+                'dayal', 'lomror', 'prabhudessai', 'rawat', 'vyshak', 'deep', 'bhandage', 'ferguson',
+                'dhawan', 'bairstow', 'rajapaksa', 'taide', 'conway', 'stokes', 'gaikwad'
             ];
             
             const isCommonSurname = commonSurnames.some(surname => 
@@ -327,7 +369,7 @@ function parseTeamDataFromOCRText(ocrText) {
             
             const couldBeSurname = (
                 line.length >= 3 && 
-                line.length <= 15 && 
+                line.length <= 20 && // Increased max length
                 /^[A-Za-z]+$/.test(line) &&
                 !/^(CSK|MI|RCB|KKR|DC|PBKS|RR|SRH|GT|LSG|BATTER|BOWLER|WICKET|KEEPER|ALL|ROUNDER|DREAM11|TEAM|MATCH|SAVE|EDIT|CONFIRM|SUBMIT|PREVIEW|CREDITS|REMAINING|BALANCE|TOTAL|RUNS|WICKETS|OVERS|EXTRAS|BATTING|BOWLING|FIELDING)$/i.test(line) &&
                 !/^\d+$/.test(line) &&
@@ -365,57 +407,57 @@ function parseTeamDataFromOCRText(ocrText) {
         }
     }
     
-            // Additional pass: Look for captain/vice-captain indicators in the raw text
-        if (!captain || !viceCaptain) {
-            console.log('Performing additional captain/vice-captain detection...');
+    // Additional pass: Look for captain/vice-captain indicators in the raw text
+    if (!captain || !viceCaptain) {
+        console.log('Performing additional captain/vice-captain detection...');
+        
+        // Look for common Dream11 UI patterns where captain/vice-captain info is displayed
+        const lines = ocrText.split('\n');
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].toLowerCase().trim();
             
-            // Look for common Dream11 UI patterns where captain/vice-captain info is displayed
-            const lines = ocrText.split('\n');
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].toLowerCase().trim();
-                
-                // Look for lines that contain captain/vice-captain information
-                if (line.includes('captain') || line.includes('(c)') || line.includes('[c]')) {
-                    console.log('Found captain indicator in line:', lines[i]);
-                    // Try to extract player name from surrounding context
-                    if (i > 0 && i < lines.length - 1) {
-                        const prevLine = lines[i - 1].trim();
-                        const nextLine = lines[i + 1].trim();
-                        
-                        // Check if previous or next line contains a player name
-                        const potentialCaptain = finalPlayers.find(player => 
-                            prevLine.includes(player.toLowerCase()) || 
-                            nextLine.includes(player.toLowerCase())
-                        );
-                        
-                        if (potentialCaptain && !captain) {
-                            captain = potentialCaptain;
-                            console.log('Found captain from context:', captain);
-                        }
-                    }
-                }
-                
-                if (line.includes('vice') || line.includes('(vc)') || line.includes('[vc]')) {
-                    console.log('Found vice-captain indicator in line:', lines[i]);
-                    // Try to extract player name from surrounding context
-                    if (i > 0 && i < lines.length - 1) {
-                        const prevLine = lines[i - 1].trim();
-                        const nextLine = lines[i + 1].trim();
-                        
-                        // Check if previous or next line contains a player name
-                        const potentialViceCaptain = finalPlayers.find(player => 
-                            prevLine.includes(player.toLowerCase()) || 
-                            nextLine.includes(player.toLowerCase())
-                        );
-                        
-                        if (potentialViceCaptain && !viceCaptain) {
-                            viceCaptain = potentialViceCaptain;
-                            console.log('Found vice-captain from context:', viceCaptain);
-                        }
+            // Look for lines that contain captain/vice-captain information
+            if (line.includes('captain') || line.includes('(c)') || line.includes('[c]')) {
+                console.log('Found captain indicator in line:', lines[i]);
+                // Try to extract player name from surrounding context
+                if (i > 0 && i < lines.length - 1) {
+                    const prevLine = lines[i - 1].trim();
+                    const nextLine = lines[i + 1].trim();
+                    
+                    // Check if previous or next line contains a player name
+                    const potentialCaptain = finalPlayers.find(player => 
+                        prevLine.includes(player.toLowerCase()) || 
+                        nextLine.includes(player.toLowerCase())
+                    );
+                    
+                    if (potentialCaptain && !captain) {
+                        captain = potentialCaptain;
+                        console.log('Found captain from context:', captain);
                     }
                 }
             }
-        
+            
+            if (line.includes('vice') || line.includes('(vc)') || line.includes('[vc]')) {
+                console.log('Found vice-captain indicator in line:', lines[i]);
+                // Try to extract player name from surrounding context
+                if (i > 0 && i < lines.length - 1) {
+                    const prevLine = lines[i - 1].trim();
+                    const nextLine = lines[i + 1].trim();
+                    
+                    // Check if previous or next line contains a player name
+                    const potentialViceCaptain = finalPlayers.find(player => 
+                        prevLine.includes(player.toLowerCase()) || 
+                        nextLine.includes(player.toLowerCase())
+                    );
+                    
+                    if (potentialViceCaptain && !viceCaptain) {
+                        viceCaptain = potentialViceCaptain;
+                        console.log('Found vice-captain from context:', viceCaptain);
+                    }
+                }
+            }
+        }
+    
         // Look for common Dream11 captain/vice-captain patterns
         const captainPatterns = [
             /captain\s*:\s*([A-Za-z\s\.\-']+)/i,

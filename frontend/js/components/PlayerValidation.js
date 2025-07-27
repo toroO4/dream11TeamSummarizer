@@ -25,8 +25,21 @@ class PlayerValidation {
                 this.playerValidationResults = result;
                 this.availablePlayers = result.availablePlayers || [];
                 
+                // Update teams with validation results
+                this.updateTeamsWithValidationResults();
+                
                 if (this.onValidationCompleteCallback) {
                     this.onValidationCompleteCallback(result);
+                }
+                
+                // Trigger summary update
+                if (window.enhancedApp && window.enhancedApp.refreshSummaryAfterValidation) {
+                    window.enhancedApp.refreshSummaryAfterValidation();
+                }
+                
+                // Also trigger team analysis update if available
+                if (window.tabbedTeamAnalysisApp && window.tabbedTeamAnalysisApp.refreshSummaryInRealTime) {
+                    window.tabbedTeamAnalysisApp.refreshSummaryInRealTime();
                 }
                 
                 return result;
@@ -52,8 +65,37 @@ class PlayerValidation {
             confidence: 1.0
         };
         
+        // Update the current teams data in session storage with validation results
+        this.updateTeamsWithValidationResults();
+        
         if (this.onPlayerReplaceCallback) {
             this.onPlayerReplaceCallback(playerIndex, newName);
+        }
+        
+        // Trigger summary update
+        if (window.enhancedApp && window.enhancedApp.refreshSummaryAfterValidation) {
+            window.enhancedApp.refreshSummaryAfterValidation();
+        }
+        
+        // Also trigger team analysis update if available
+        if (window.tabbedTeamAnalysisApp && window.tabbedTeamAnalysisApp.refreshSummaryInRealTime) {
+            window.tabbedTeamAnalysisApp.refreshSummaryInRealTime();
+        }
+    }
+
+    // Add method to update teams with validation results
+    updateTeamsWithValidationResults() {
+        try {
+            const currentTeams = JSON.parse(sessionStorage.getItem('currentTeams') || '[]');
+            
+            // Find the current team being validated (assuming it's the first team for now)
+            if (currentTeams.length > 0 && this.playerValidationResults) {
+                currentTeams[0].validationResults = this.playerValidationResults.validationResults;
+                sessionStorage.setItem('currentTeams', JSON.stringify(currentTeams));
+                console.log('Updated teams with validation results');
+            }
+        } catch (error) {
+            console.error('Error updating teams with validation results:', error);
         }
     }
 

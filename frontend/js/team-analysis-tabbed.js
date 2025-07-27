@@ -1062,18 +1062,28 @@ class TabbedTeamAnalysisApp {
             });
 
             // Count players based on validation results from players tab
-            if (team.validationResults) {
+            if (team.validationResults && team.validationResults.length > 0) {
+                console.log(`Using validation results for team ${teamIndex + 1}:`, team.validationResults);
                 team.validationResults.forEach(validationResult => {
                     if (validationResult.isValid && validationResult.team) {
                         // Count based on validated team information
                         if (validationResult.team === this.currentMatchDetails?.teamA) {
-                            teamAPlayers.push({ player: validationResult.validatedName || validationResult.inputName, team: team.name });
+                            teamAPlayers.push({ 
+                                player: validationResult.validatedName || validationResult.inputName, 
+                                team: team.name,
+                                role: validationResult.role || 'Unknown'
+                            });
                         } else if (validationResult.team === this.currentMatchDetails?.teamB) {
-                            teamBPlayers.push({ player: validationResult.validatedName || validationResult.inputName, team: team.name });
+                            teamBPlayers.push({ 
+                                player: validationResult.validatedName || validationResult.inputName, 
+                                team: team.name,
+                                role: validationResult.role || 'Unknown'
+                            });
                         }
                     }
                 });
             } else {
+                console.log(`No validation results for team ${teamIndex + 1}, using fallback categorization`);
                 // Fallback: Use original categorization if no validation results
                 teamPlayers.forEach(player => {
                     // Check if player belongs to team A or B
@@ -1420,10 +1430,13 @@ class TabbedTeamAnalysisApp {
             const teamAShort = this.getTeamShortName(this.currentMatchDetails.teamA);
             const teamBShort = this.getTeamShortName(this.currentMatchDetails.teamB);
             
-            // Show team distribution count
+            // Show team distribution count with more detail
+            const totalValidatedPlayers = teamAPlayersCount + teamBPlayersCount;
+            const totalExpectedPlayers = this.currentTeams.length * 11; // 11 players per team
+            
             categories.push({
                 type: 'Team Distribution',
-                description: `${teamAPlayersCount} ${teamAShort} | ${teamBPlayersCount} ${teamBShort}`,
+                description: `${teamAPlayersCount} ${teamAShort} | ${teamBPlayersCount} ${teamBShort} (${totalValidatedPlayers}/${totalExpectedPlayers} validated)`,
                 color: 'bg-purple-100 text-purple-800 border-purple-200'
             });
             
@@ -1444,6 +1457,22 @@ class TabbedTeamAnalysisApp {
                 categories.push({
                     type: 'Balanced Teams',
                     description: `Equal mix: ${teamAPlayersCount} ${teamAShort} vs ${teamBPlayersCount} ${teamBShort}`,
+                    color: 'bg-green-100 text-green-800 border-green-200'
+                });
+            }
+            
+            // Show validation status
+            if (totalValidatedPlayers < totalExpectedPlayers) {
+                const unvalidatedCount = totalExpectedPlayers - totalValidatedPlayers;
+                categories.push({
+                    type: 'Validation Status',
+                    description: `${unvalidatedCount} players need validation`,
+                    color: 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                });
+            } else {
+                categories.push({
+                    type: 'Validation Status',
+                    description: 'All players validated',
                     color: 'bg-green-100 text-green-800 border-green-200'
                 });
             }
@@ -3038,6 +3067,29 @@ class TabbedTeamAnalysisApp {
             validateBtn.disabled = false;
             validateBtn.textContent = originalText;
             validateBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    }
+
+    static makeTestAvailable() {
+        // Make the app instance available globally for testing and summary updates
+        window.tabbedTeamAnalysisApp = this;
+        console.log('Tabbed team analysis app instance made available globally as window.tabbedTeamAnalysisApp');
+    }
+
+    // Add method to refresh summary in real-time
+    async refreshSummaryInRealTime() {
+        try {
+            console.log('Refreshing team analysis summary in real-time...');
+            
+            // Regenerate team analysis
+            const analysis = await this.generateComprehensiveTeamAnalysis();
+            
+            // Update the display
+            this.displayAnalysisResults(analysis);
+            
+            console.log('Team analysis summary updated in real-time:', analysis);
+        } catch (error) {
+            console.error('Error updating team analysis summary in real-time:', error);
         }
     }
 }
