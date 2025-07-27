@@ -275,7 +275,7 @@ async function validatePlayers({ players, teamA, teamB }) {
         message: `Validated ${validPlayers.length} out of ${processedPlayers.length} players${missingPlayers.length > 0 ? ` (${missingPlayers.length} missing from screenshot)` : ''}`,
         requiresCorrection: invalidPlayers.length > 0 || missingPlayers.length > 0,
         availablePlayersCount: playersWithTeams.length,
-        availablePlayers: playersWithTeams.sort((a, b) => a.player_name.localeCompare(b.player_name))
+        availablePlayers: playersWithTeams
     };
 }
 
