@@ -523,13 +523,13 @@ class TeamSummaryApp {
         const contentDiv = document.getElementById('analysis-content');
         if (!contentDiv) return;
 
-        // Display simple text analysis without visual elements
+        // Display enhanced analysis with proper formatting
         const analysisText = result.analysis || result.summary || 'No analysis available';
         
         contentDiv.innerHTML = `
             <div class="space-y-4">
                 <!-- Analysis Header -->
-                <div class="bg-gradient-to-r from-primary to-secondary rounded-xl p-4 text-white">
+                <div class="bg-primary rounded-xl p-4 text-white">
                     <div class="flex items-center justify-between mb-2">
                         <div class="flex items-center space-x-2">
                             <span class="text-2xl">🏏</span>
@@ -543,10 +543,10 @@ class TeamSummaryApp {
                     <p class="text-sm opacity-90">Comprehensive fantasy sports analysis</p>
                 </div>
 
-                <!-- Simple Text Analysis -->
-                <div class="bg-white rounded-xl border border-gray-200 p-6">
+                <!-- Enhanced Analysis Display -->
+                <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                     <div class="prose prose-sm max-w-none">
-                        <div class="whitespace-pre-line text-gray-800 leading-relaxed">${this.formatAnalysisText(analysisText)}</div>
+                        <div class="text-gray-800 leading-relaxed space-y-6">${this.formatAnalysisText(analysisText)}</div>
                     </div>
                 </div>
 
@@ -572,16 +572,26 @@ class TeamSummaryApp {
     formatAnalysisText(text) {
         if (!text) return 'No analysis available';
         
-        // Basic formatting for better readability
+        // Enhanced formatting for the new analysis structure with better visual hierarchy
         return text
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold text
-            .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic text
-            .replace(/###(.*?)$/gm, '<h3 class="text-lg font-bold text-gray-900 mt-4 mb-2">$1</h3>') // H3 headers
-            .replace(/##(.*?)$/gm, '<h2 class="text-xl font-bold text-gray-900 mt-6 mb-3">$1</h2>') // H2 headers
-            .replace(/#(.*?)$/gm, '<h1 class="text-2xl font-bold text-gray-900 mt-8 mb-4">$1</h1>') // H1 headers
-            .replace(/\[Rating: (.*?)\]/g, '<span class="inline-block bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded">Rating: $1</span>') // Rating badges
+            .replace(/\*\*(.*?)\*\*/g, '<div class="bg-primary text-white px-4 py-3 rounded-lg mb-4"><h2 class="text-xl font-bold">$1</h2></div>') // Main headers with solid green background
+            .replace(/\*(.*?)\*/g, '<em class="text-gray-700">$1</em>') // Italic text
+            
+            // Format the In-Depth Team Autopsy section with card styling
+            .replace(/(Captain Choices|Vice-Captain Choices|Core Players|Player Rotation|Credit Management):/g, '<div class="bg-gray-50 border-l-4 border-primary px-3 py-2 mb-2 rounded-r"><strong class="text-md font-semibold text-gray-800">$1:</strong></div>')
+            
+            // Format Strategic Overhaul section with different styling
+            .replace(/(Captaincy Diversification|Core Player Adjustments|New Team Blueprint|Action Points):/g, '<div class="bg-blue-50 border-l-4 border-blue-500 px-3 py-2 mb-2 rounded-r"><strong class="text-md font-semibold text-gray-800">$1:</strong></div>')
+            
+            // Add proper spacing and styling
             .replace(/\n\n/g, '<br><br>') // Double line breaks
-            .replace(/\n/g, '<br>'); // Single line breaks
+            .replace(/\n/g, '<br>') // Single line breaks
+            .replace(/<br><br><div class="bg-gradient-to-r/g, '<div class="bg-gradient-to-r') // Fix spacing before headers
+            .replace(/<\/div><br>/g, '</div><br><br>') // Add spacing after headers
+            .replace(/<div class="bg-gray-50 border-l-4 border-primary px-3 py-2 mb-2 rounded-r"><strong class="text-md font-semibold text-gray-800">(.*?):<\/strong><\/div><br>/g, '<div class="bg-gray-50 border-l-4 border-primary px-3 py-2 mb-2 rounded-r"><strong class="text-md font-semibold text-gray-800">$1:</strong></div>') // Fix spacing for autopsy items
+            .replace(/<div class="bg-blue-50 border-l-4 border-blue-500 px-3 py-2 mb-2 rounded-r"><strong class="text-md font-semibold text-gray-800">(.*?):<\/strong><\/div><br>/g, '<div class="bg-blue-50 border-l-4 border-blue-500 px-3 py-2 mb-2 rounded-r"><strong class="text-md font-semibold text-gray-800">$1:</strong></div>') // Fix spacing for strategic items
+            .replace(/([^>])\n([^<])/g, '$1<br>$2') // Add line breaks for better readability
+            .replace(/<br><br><br>/g, '<br><br>'); // Clean up excessive line breaks
     }
 
     // Removed - createVisualAnalysis() function no longer needed

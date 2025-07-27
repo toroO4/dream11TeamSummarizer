@@ -262,26 +262,26 @@ Win Rate: ${teamA} ${headToHeadData.teamAWins && headToHeadData.totalMatches ? M
 
 You MUST respond in EXACTLY this format with these exact headings:
 
-**Team Balance:**
-[Write MAX 12 words about team composition and balance] [Rating: X/10]
+**Overall Verdict:**
+[Write MAX 20 words with overall team assessment]
 
-**Captaincy Choice:**
-[Write MAX 12 words about captain and vice-captain selections] [Rating: X/10]
+**Executive Summary:**
+[Write MAX 20 words about team strategy and approach]
 
-**Match Advantage:**
-[Write MAX 12 words about team's specific advantages for this match]
+**In-Depth Team Autopsy:**
 
-**Venue Strategy:**
-[Write MAX 12 words about how team composition suits the venue]
+Captain Choices: [MAX 20 words about captain selection]
+Vice-Captain Choices: [MAX 20 words about vice-captain selection]
+Core Players: [MAX 20 words about consistent players]
+Player Rotation: [MAX 20 words about variable selections]
+Credit Management: [MAX 20 words about credit usage]
 
-**Covariance Analysis:**
-[Write MAX 12 words about player combinations and interactions] [Rating: X/10]
+**Strategic Overhaul & Actionable Recommendations:**
 
-**Pitch Conditions:**
-[Write MAX 12 words about how team suits expected pitch conditions]
-
-**Overall Rating:**
-[Write MAX 12 words with final summary and rating out of 10]
+Captaincy Diversification: [MAX 20 words about captaincy strategy]
+Core Player Adjustments: [MAX 20 words about player changes]
+New Team Blueprint: [MAX 20 words about team structure]
+Action Points: [MAX 20 words about immediate actions]
 
 COMPREHENSIVE TEAM DATA:
 ${playerDetails}
@@ -291,7 +291,7 @@ ${viceCaptainAnalysis}${venueInfo}${teamFormInfo}${h2hInfo}${playerPerformanceIn
 
 ${teamMetadata ? `\nTEAM METADATA:\nTeam Name: ${teamMetadata.teamName}\nValidation: ${teamMetadata.validationStatus}\nValid Players: ${teamMetadata.totalValidPlayers}/11` : ''}
 
-CRITICAL: You MUST use the exact headings above and provide MAX 12 words for each section. Be extremely concise and direct. Add ratings [Rating: X/10] for Team Balance, Captaincy Choice, and Covariance Analysis. Do not add any other sections like "Bottom-line" or change the format. Use all the comprehensive data provided to give expert insights about team balance, player combinations, venue suitability, and match advantages.`;
+CRITICAL: You MUST use the exact headings above and provide MAX 20 words for each section. Be extremely concise and direct. NO TABLES - use simple text format. Use all the comprehensive data provided to give expert insights about team balance, player combinations, venue suitability, and match advantages.`;
 
   const completion = await openai.chat.completions.create({
     model: "gpt-4o",
@@ -971,25 +971,30 @@ Team Analytics:
 
 Fantasy Teams Data: ${JSON.stringify(teamsJson, null, 2)}
 
-Please structure your analysis in the following sections:
+You MUST respond in EXACTLY this format with these exact headings:
 
-**1. Overall Verdict:**
-   - Give my strategy a catchy title (e.g., "High-Risk, High-Reward," "Balanced Portfolio").
-   - Provide a 2-3 sentence executive summary of my approach and its primary strengths and weaknesses.
+**Overall Verdict:**
+[Write MAX 20 words with overall team assessment]
 
-**2. In-Depth Team Autopsy:**
-   - Present a table analyzing my strategy, covering:
-     - Captain & Vice-Captain choices (note if they are fixed).
-     - Core Players (identify players in >80% of teams).
-     - Player Rotation (which players are being swapped).
-     - Credit Management (average credits used).
+**Executive Summary:**
+[Write MAX 20 words about team strategy and approach]
 
-**3. Strategic Overhaul & Actionable Recommendations:**
-   - **Captaincy Diversification:** Suggest a new model for splitting my Captain/VC choices across the ${teams.length} teams.
-   - **Core Player Adjustments:** Advise on which core players to reduce exposure to and suggest new "differential" players to add.
-   - **New Team Blueprint:** Propose 3-4 distinct team archetypes or structures (e.g., "Pace Attack," "Batting Heavy," "All-Rounder Hedge") and how many teams to allocate to each.
+**In-Depth Team Autopsy:**
 
-Your final output should be well-formatted, using headings, bold text, and tables to be easily readable in simple text structured format.`;
+Captain Choices: [MAX 20 words about captain selection]
+Vice-Captain Choices: [MAX 20 words about vice-captain selection]
+Core Players: [MAX 20 words about consistent players]
+Player Rotation: [MAX 20 words about variable selections]
+Credit Management: [MAX 20 words about credit usage]
+
+**Strategic Overhaul & Actionable Recommendations:**
+
+Captaincy Diversification: [MAX 20 words about captaincy strategy]
+Core Player Adjustments: [MAX 20 words about player changes]
+New Team Blueprint: [MAX 20 words about team structure]
+Action Points: [MAX 20 words about immediate actions]
+
+CRITICAL: You MUST use the exact headings above and provide MAX 20 words for each section. Be extremely concise and direct. NO TABLES - use simple text format. Use all the comprehensive data provided to give expert insights about team balance, player combinations, venue suitability, and match advantages.`;
 
         // Make OpenAI API call
         const completion = await openai.chat.completions.create({
