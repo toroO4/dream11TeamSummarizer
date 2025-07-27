@@ -1001,6 +1001,12 @@ class EnhancedCricketAnalyzerApp {
                 // Display mini summary
                 await this.displayMiniSummary(teams);
                 
+                // Trigger validation for uploaded teams
+                await this.triggerValidationForUploadedTeams();
+                
+                // Trigger summary update after upload
+                await this.updateSummaryAfterUpload();
+                
                 const successMsg = `Successfully processed ${teams.length} team(s)`;
                 if (errors.length > 0) {
                     this.components.toast.showWarning(`${successMsg}. ${errors.length} file(s) failed.`);
@@ -1060,6 +1066,12 @@ class EnhancedCricketAnalyzerApp {
                 
                 // Display mini summary
                 await this.displayMiniSummary(result.data.teams);
+                
+                // Trigger validation for uploaded teams
+                await this.triggerValidationForUploadedTeams();
+                
+                // Trigger summary update after upload
+                await this.updateSummaryAfterUpload();
                 
                 this.components.toast.showSuccess(`Successfully processed ${result.data.teams.length} team(s)`);
             } else {
@@ -1186,7 +1198,7 @@ class EnhancedCricketAnalyzerApp {
             // Restore the original HTML structure
             miniSummarySection.innerHTML = `
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <div class="flex items-center gap-3 mb-6">
+                    <div class="flex items-center gap-3 mb-8">
                         <div class="w-8 h-8 bg-gradient-to-br from-green-400 to-pink-500 rounded-lg flex items-center justify-center">
                             <span class="text-white text-sm font-bold">📊</span>
                         </div>
@@ -1194,14 +1206,14 @@ class EnhancedCricketAnalyzerApp {
                     </div>
 
                     <!-- Quick Stats -->
-                    <div id="quick-stats" class="grid grid-cols-2 gap-4 mb-6">
+                    <div id="quick-stats" class="mb-8">
                         <!-- Quick stats will be populated here -->
                     </div>
 
                     <!-- Role Breakdown -->
-                    <div id="role-breakdown" class="bg-gray-50 rounded-xl p-4">
-                        <h4 class="text-sm font-semibold text-gray-700 mb-3">Role Breakdown</h4>
-                        <div id="role-breakdown-content" class="grid grid-cols-2 gap-3">
+                    <div id="role-breakdown" class="bg-gray-50 rounded-xl p-6">
+                        <h4 class="text-sm font-semibold text-gray-700 mb-4">Role Breakdown</h4>
+                        <div id="role-breakdown-content" class="grid grid-cols-2 gap-4">
                             <!-- Role breakdown will be populated here -->
                         </div>
                     </div>
@@ -1310,17 +1322,27 @@ class EnhancedCricketAnalyzerApp {
                     }
                 });
                 
-                // Calculate unvalidated players
-                const unvalidatedCount = team.players ? team.players.length - teamStats.validatedPlayers : 0;
-                summary.teamDistribution.unvalidated += unvalidatedCount;
+                // Calculate unvalidated players - only count those that are not recognized in database
+                const unrecognizedPlayers = team.validationResults.filter(result => 
+                    !result.isValid && !result.isMissing && result.confidence < 0.8
+                ).length;
+                summary.teamDistribution.unvalidated += unrecognizedPlayers;
+                console.log(`Team ${index + 1}: ${unrecognizedPlayers} players need validation`);
             } else {
-                // If no validation results, count all as unvalidated
-                summary.teamDistribution.unvalidated += team.players ? team.players.length : 0;
+                // If no validation results yet, don't count them as needing validation
+                // They will be counted after validation is performed
+                console.log(`Team ${index + 1}: No validation results yet, not counting as needing validation`);
             }
 
-            // Track captains and vice captains
-            if (team.captain) summary.captains.push(team.captain);
-            if (team.viceCaptain) summary.viceCaptains.push(team.viceCaptain);
+            // Track captains and vice captains - only count actual captains, not "Not specified"
+            if (team.captain && team.captain !== 'Not specified' && team.captain !== 'Not selected') {
+                summary.captains.push(team.captain);
+                console.log(`Found captain for team ${index + 1}: ${team.captain}`);
+            }
+            if (team.viceCaptain && team.viceCaptain !== 'Not specified' && team.viceCaptain !== 'Not selected') {
+                summary.viceCaptains.push(team.viceCaptain);
+                console.log(`Found vice captain for team ${index + 1}: ${team.viceCaptain}`);
+            }
 
             summary.teamStats.push(teamStats);
         });
@@ -1346,6 +1368,15 @@ class EnhancedCricketAnalyzerApp {
                     summary.teamStats[index].roles[role]++;
                 });
             }
+        });
+
+        console.log('Final summary data:', {
+            totalTeams: summary.totalTeams,
+            totalPlayers: summary.totalPlayers,
+            captainsCount: summary.captains.length,
+            captains: summary.captains,
+            unvalidatedCount: summary.teamDistribution.unvalidated,
+            roleBreakdown: summary.roleBreakdown
         });
 
         return summary;
@@ -1627,38 +1658,23 @@ class EnhancedCricketAnalyzerApp {
         const quickStatsSection = document.getElementById('quick-stats');
         if (!quickStatsSection) return;
 
-        // Get current match details for team names
-        const currentMatchDetails = this.currentMatchDetails || 
-            JSON.parse(sessionStorage.getItem('currentMatchDetails') || '{}');
-        
-        const teamAShort = currentMatchDetails.teamA ? this.getTeamShortName(currentMatchDetails.teamA) : 'Team A';
-        const teamBShort = currentMatchDetails.teamB ? this.getTeamShortName(currentMatchDetails.teamB) : 'Team B';
-
         quickStatsSection.innerHTML = `
-            <div class="grid grid-cols-2 gap-3">
-                <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                    <div class="text-xs font-medium text-blue-700">Total Teams</div>
-                    <div class="text-lg font-bold text-blue-900">${summaryData.totalTeams}</div>
+            <div class="grid grid-cols-2 gap-5">
+                <div class="bg-blue-50 p-5 rounded-xl border border-blue-200 text-center shadow-sm hover:shadow-md transition-shadow duration-200">
+                    <div class="text-3xl font-bold text-blue-600 mb-3">${summaryData.totalTeams}</div>
+                    <div class="text-sm text-blue-700 font-medium">Total Teams</div>
                 </div>
-                <div class="bg-green-50 p-3 rounded-lg border border-green-200">
-                    <div class="text-xs font-medium text-green-700">Total Players</div>
-                    <div class="text-lg font-bold text-green-900">${summaryData.totalPlayers}</div>
+                <div class="bg-green-50 p-5 rounded-xl border border-green-200 text-center shadow-sm hover:shadow-md transition-shadow duration-200">
+                    <div class="text-3xl font-bold text-green-600 mb-3">${summaryData.totalPlayers}</div>
+                    <div class="text-sm text-green-700 font-medium">Total Players</div>
                 </div>
-                <div class="bg-purple-50 p-3 rounded-lg border border-purple-200">
-                    <div class="text-xs font-medium text-purple-700">${teamAShort} Players</div>
-                    <div class="text-lg font-bold text-purple-900">${summaryData.teamDistribution.teamA}</div>
+                <div class="bg-yellow-50 p-5 rounded-xl border border-yellow-200 text-center shadow-sm hover:shadow-md transition-shadow duration-200">
+                    <div class="text-3xl font-bold text-yellow-600 mb-3">${summaryData.teamDistribution.unvalidated}</div>
+                    <div class="text-sm text-yellow-700 font-medium">Need Validation</div>
                 </div>
-                <div class="bg-orange-50 p-3 rounded-lg border border-orange-200">
-                    <div class="text-xs font-medium text-orange-700">${teamBShort} Players</div>
-                    <div class="text-lg font-bold text-orange-900">${summaryData.teamDistribution.teamB}</div>
-                </div>
-                <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-                    <div class="text-xs font-medium text-yellow-700">Need Validation</div>
-                    <div class="text-lg font-bold text-yellow-900">${summaryData.teamDistribution.unvalidated}</div>
-                </div>
-                <div class="bg-red-50 p-3 rounded-lg border border-red-200">
-                    <div class="text-xs font-medium text-red-700">Captains Set</div>
-                    <div class="text-lg font-bold text-red-900">${summaryData.captains.filter(c => c !== 'Not specified').length}</div>
+                <div class="bg-red-50 p-5 rounded-xl border border-red-200 text-center shadow-sm hover:shadow-md transition-shadow duration-200">
+                    <div class="text-3xl font-bold text-red-600 mb-3">${summaryData.captains.length}</div>
+                    <div class="text-sm text-red-700 font-medium">Captains Set</div>
                 </div>
             </div>
         `;
@@ -1676,9 +1692,9 @@ class EnhancedCricketAnalyzerApp {
         ];
 
         roleBreakdown.innerHTML = roles.map(role => `
-            <div class="bg-white border border-gray-200 rounded-xl p-4 text-center shadow-sm hover:shadow-md transition-shadow duration-200">
-                <div class="text-3xl mb-3">${role.icon}</div>
-                <div class="text-xl font-bold text-gray-900 mb-2">${summaryData.roleBreakdown[role.key]}</div>
+            <div class="bg-white border border-gray-200 rounded-xl p-5 text-center shadow-sm hover:shadow-md transition-shadow duration-200">
+                <div class="text-3xl mb-4">${role.icon}</div>
+                <div class="text-2xl font-bold text-gray-900 mb-3">${summaryData.roleBreakdown[role.key]}</div>
                 <div class="text-sm text-gray-600 font-medium">${role.label}</div>
             </div>
         `).join('');
@@ -1827,6 +1843,65 @@ Team 2,Mohammed Shami,Bowler,No,No`;
         setTimeout(async () => {
             await this.updateSummaryInRealTime();
         }, 500);
+    }
+
+    // Add function to update summary after team upload
+    async updateSummaryAfterUpload() {
+        console.log('Updating summary after team upload...');
+        
+        // Wait a bit for upload processing to complete
+        setTimeout(async () => {
+            await this.updateSummaryInRealTime();
+        }, 1000);
+    }
+
+    // Add function to trigger validation for uploaded teams
+    async triggerValidationForUploadedTeams() {
+        console.log('Triggering validation for uploaded teams...');
+        
+        if (this.currentTeams && this.currentTeams.length > 0) {
+            try {
+                // Get current match details
+                const currentMatchDetails = this.currentMatchDetails || 
+                    JSON.parse(sessionStorage.getItem('currentMatchDetails') || '{}');
+                
+                if (currentMatchDetails.teamA && currentMatchDetails.teamB) {
+                    // Validate players for each team
+                    for (let i = 0; i < this.currentTeams.length; i++) {
+                        const team = this.currentTeams[i];
+                        if (team.players && team.players.length > 0) {
+                            console.log(`Validating players for team ${i + 1}...`);
+                            
+                            // Use the player validation component to validate players
+                            if (this.components.playerValidation) {
+                                const validationResult = await this.components.playerValidation.validatePlayers(
+                                    team.players,
+                                    currentMatchDetails.teamA,
+                                    currentMatchDetails.teamB
+                                );
+                                
+                                // Update team with validation results
+                                team.validationResults = validationResult.validationResults;
+                                
+                                console.log(`Validation completed for team ${i + 1}:`, validationResult);
+                            }
+                        }
+                    }
+                    
+                    // Update session storage with validation results
+                    sessionStorage.setItem('currentTeams', JSON.stringify(this.currentTeams));
+                    
+                    // Update summary with validation results
+                    await this.updateSummaryInRealTime();
+                    
+                    console.log('Validation completed for all teams');
+                } else {
+                    console.log('No match details available for validation');
+                }
+            } catch (error) {
+                console.error('Error triggering validation:', error);
+            }
+        }
     }
 
     // Test function for manual summary update

@@ -469,7 +469,9 @@ function parseTeamDataFromOCRText(ocrText) {
             /([A-Za-z\s\.\-']+)\s*\(c\s*\)/i,
             /\(c\s*\)\s*([A-Za-z\s\.\-']+)/i,
             /([A-Za-z\s\.\-']+)\s*\[c\]/i,
-            /\[c\]\s*([A-Za-z\s\.\-']+)/i
+            /\[c\]\s*([A-Za-z\s\.\-']+)/i,
+            /captain\s*selected\s*:\s*([A-Za-z\s\.\-']+)/i,
+            /captain\s*choice\s*:\s*([A-Za-z\s\.\-']+)/i
         ];
         
         const viceCaptainPatterns = [
@@ -482,7 +484,9 @@ function parseTeamDataFromOCRText(ocrText) {
             /([A-Za-z\s\.\-']+)\s*\(vc\s*\)/i,
             /\(vc\s*\)\s*([A-Za-z\s\.\-']+)/i,
             /([A-Za-z\s\.\-']+)\s*\[vc\]/i,
-            /\[vc\]\s*([A-Za-z\s\.\-']+)/i
+            /\[vc\]\s*([A-Za-z\s\.\-']+)/i,
+            /vice\s*captain\s*selected\s*:\s*([A-Za-z\s\.\-']+)/i,
+            /vice\s*captain\s*choice\s*:\s*([A-Za-z\s\.\-']+)/i
         ];
         
         // Check for captain patterns

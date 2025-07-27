@@ -1461,12 +1461,24 @@ class TabbedTeamAnalysisApp {
                 });
             }
             
-            // Show validation status
-            if (totalValidatedPlayers < totalExpectedPlayers) {
-                const unvalidatedCount = totalExpectedPlayers - totalValidatedPlayers;
+            // Show validation status with improved logic
+            let actualUnvalidatedCount = 0;
+            
+            // Count only players that are not recognized in database
+            this.currentTeams.forEach(team => {
+                if (team.validationResults && team.validationResults.length > 0) {
+                    const unrecognizedPlayers = team.validationResults.filter(result => 
+                        !result.isValid && !result.isMissing && result.confidence < 0.8
+                    ).length;
+                    actualUnvalidatedCount += unrecognizedPlayers;
+                }
+                // If no validation results yet, don't count them as needing validation
+            });
+            
+            if (actualUnvalidatedCount > 0) {
                 categories.push({
                     type: 'Validation Status',
-                    description: `${unvalidatedCount} players need validation`,
+                    description: `${actualUnvalidatedCount} players need validation`,
                     color: 'bg-yellow-100 text-yellow-800 border-yellow-200'
                 });
             } else {
@@ -2107,13 +2119,28 @@ class TabbedTeamAnalysisApp {
         // Generate team preview cards for comparison
         comparisonContainer.innerHTML = `
             <div>
-                <h4 class="font-semibold text-sm text-gray-900 mb-4 flex items-center">
-                    <span class="text-primary mr-2">🏆</span>
-                    Team Comparison (${this.currentTeams.length})
-                </h4>
+                <div class="flex items-center justify-between mb-4">
+                    <h4 class="font-semibold text-sm text-gray-900 flex items-center">
+                        <span class="text-primary mr-2">🏆</span>
+                        Team Comparison (${this.currentTeams.length})
+                    </h4>
+                    <button id="comprehensive-compare-btn" class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2">
+                        <span>🔍</span>
+                        Compare All Teams
+                    </button>
+                </div>
                 ${this.generateTeamPreviewCards()}
+                <div id="comprehensive-comparison-results" class="mt-6">
+                    <!-- Comparison results will be displayed here -->
+                </div>
             </div>
         `;
+
+        // Add event listener for the comparison button
+        const compareBtn = document.getElementById('comprehensive-compare-btn');
+        if (compareBtn) {
+            compareBtn.addEventListener('click', () => this.handleComprehensiveComparison());
+        }
     }
 
     loadTeamsSummaryData() {
@@ -3091,6 +3118,677 @@ class TabbedTeamAnalysisApp {
         } catch (error) {
             console.error('Error updating team analysis summary in real-time:', error);
         }
+    }
+
+    async handleComprehensiveComparison() {
+        console.log('Starting comprehensive team comparison...');
+        
+        if (this.currentTeams.length === 0) {
+            this.components.toast.showError('No teams available for comparison');
+            return;
+        }
+
+        try {
+            // Show loading state
+            this.showComprehensiveComparisonLoading();
+            
+            // Get match details
+            const currentMatchDetails = this.currentMatchDetails || 
+                JSON.parse(sessionStorage.getItem('currentMatchDetails') || '{}');
+            
+            if (!currentMatchDetails.teamA || !currentMatchDetails.teamB) {
+                this.components.toast.showError('Match details not available. Please select a match first.');
+                return;
+            }
+
+            // Fetch all required data
+            const [teamFormData, headToHeadData, venueStatsData] = await Promise.all([
+                this.fetchTeamRecentForm(),
+                this.fetchHeadToHead(),
+                this.fetchVenueStats()
+            ]);
+
+            // Perform comprehensive comparison
+            const comparisonResults = await this.performComprehensiveComparison(
+                this.currentTeams,
+                currentMatchDetails,
+                teamFormData,
+                headToHeadData,
+                venueStatsData
+            );
+
+            // Display results
+            this.displayComprehensiveComparisonResults(comparisonResults);
+
+        } catch (error) {
+            console.error('Comprehensive comparison error:', error);
+            this.components.toast.showError('Failed to perform comparison. Please try again.');
+            this.hideComprehensiveComparisonLoading();
+        }
+    }
+
+    async performComprehensiveComparison(teams, matchDetails, teamFormData, headToHeadData, venueStatsData) {
+        console.log('Performing comprehensive comparison...');
+        
+        const results = {
+            teams: [],
+            bestTeam: null,
+            summary: {}
+        };
+
+        for (let i = 0; i < teams.length; i++) {
+            const team = teams[i];
+            console.log(`Evaluating team ${i + 1}: ${team.name}`);
+            
+            const evaluation = {
+                teamName: team.name,
+                teamIndex: i,
+                scores: {},
+                totalScore: 0,
+                recommendations: []
+            };
+
+            // 1. Team Balance (0-5)
+            evaluation.scores.teamBalance = this.evaluateTeamBalance(team);
+            
+            // 2. Captain & Vice-Captain Impact (0-5)
+            evaluation.scores.captaincyImpact = this.evaluateCaptaincyImpact(team, matchDetails);
+            
+            // 3. Matchup Advantage (0-5)
+            evaluation.scores.matchupAdvantage = this.evaluateMatchupAdvantage(team, matchDetails, headToHeadData);
+            
+            // 4. Venue Impact (0-5)
+            evaluation.scores.venueImpact = this.evaluateVenueImpact(team, matchDetails, venueStatsData);
+            
+            // 5. Form and Recency (0-5)
+            evaluation.scores.formRecency = this.evaluateFormRecency(team, matchDetails, teamFormData);
+            
+            // 6. Covariance/Duplication between teams (0-5)
+            evaluation.scores.covariance = this.evaluateCovariance(team, teams, i);
+            
+            // 7. Differential Picks / Uniqueness (0-5)
+            evaluation.scores.uniqueness = this.evaluateUniqueness(team, teams, i);
+
+            // Calculate total score
+            evaluation.totalScore = Object.values(evaluation.scores).reduce((sum, score) => sum + score, 0);
+            
+            // Generate recommendations
+            evaluation.recommendations = this.generateTeamRecommendations(evaluation, team, matchDetails);
+            
+            results.teams.push(evaluation);
+        }
+
+        // Find best team
+        results.bestTeam = results.teams.reduce((best, current) => 
+            current.totalScore > best.totalScore ? current : best
+        );
+
+        // Generate summary
+        results.summary = this.generateComparisonSummary(results);
+
+        console.log('Comprehensive comparison completed:', results);
+        return results;
+    }
+
+    evaluateTeamBalance(team) {
+        if (!team.players || team.players.length === 0) return 0;
+        
+        const composition = this.analyzeTeamComposition(team.players);
+        let score = 0;
+        
+        // Check for balanced composition
+        const hasWicketKeeper = composition.wicketKeepers > 0;
+        const hasBatsmen = composition.batsmen >= 3;
+        const hasBowlers = composition.bowlers >= 3;
+        const hasAllRounders = composition.allRounders >= 1;
+        
+        if (hasWicketKeeper) score += 1;
+        if (hasBatsmen) score += 1;
+        if (hasBowlers) score += 1;
+        if (hasAllRounders) score += 1;
+        
+        // Bonus for optimal balance
+        if (composition.batsmen >= 4 && composition.bowlers >= 4) score += 1;
+        
+        return Math.min(score, 5);
+    }
+
+    evaluateCaptaincyImpact(team, matchDetails) {
+        let score = 0;
+        
+        // Check if captain is set
+        if (team.captain && team.captain !== 'Not specified' && team.captain !== 'Not selected') {
+            score += 2;
+            
+            // Check if captain is from the playing teams
+            const captainTeam = this.categorizePlayerByTeam(team.captain, matchDetails.teamA, matchDetails.teamB);
+            if (captainTeam) score += 1;
+            
+            // Check if vice-captain is set
+            if (team.viceCaptain && team.viceCaptain !== 'Not specified' && team.viceCaptain !== 'Not selected') {
+                score += 1;
+                
+                // Check if vice-captain is different from captain
+                if (team.viceCaptain !== team.captain) score += 1;
+            }
+        }
+        
+        return Math.min(score, 5);
+    }
+
+    evaluateMatchupAdvantage(team, matchDetails, headToHeadData) {
+        if (!headToHeadData || !headToHeadData.success) return 2.5; // Neutral score
+        
+        let score = 2.5; // Start with neutral score
+        
+        try {
+            const data = headToHeadData.data || headToHeadData;
+            
+            // Analyze head-to-head data
+            if (data.total_matches > 0) {
+                const teamAWins = data.team1_wins || 0;
+                const teamBWins = data.team2_wins || 0;
+                const totalMatches = data.total_matches || 0;
+                
+                // Calculate win percentage
+                const teamAWinRate = totalMatches > 0 ? (teamAWins / totalMatches) * 100 : 50;
+                const teamBWinRate = totalMatches > 0 ? (teamBWins / totalMatches) * 100 : 50;
+                
+                // Count players from each team
+                const teamAPlayers = team.players?.filter(player => 
+                    this.categorizePlayerByTeam(player, matchDetails.teamA, matchDetails.teamB) === matchDetails.teamA
+                ).length || 0;
+                
+                const teamBPlayers = team.players?.filter(player => 
+                    this.categorizePlayerByTeam(player, matchDetails.teamA, matchDetails.teamB) === matchDetails.teamB
+                ).length || 0;
+                
+                // Score based on historical advantage
+                if (teamAPlayers > teamBPlayers && teamAWinRate > teamBWinRate) {
+                    score += 1.5;
+                } else if (teamBPlayers > teamAPlayers && teamBWinRate > teamAWinRate) {
+                    score += 1.5;
+                }
+                
+                // Bonus for significant historical advantage
+                if (Math.abs(teamAWinRate - teamBWinRate) > 20) {
+                    score += 1;
+                }
+            }
+        } catch (error) {
+            console.error('Error evaluating matchup advantage:', error);
+        }
+        
+        return Math.min(Math.max(score, 0), 5);
+    }
+
+    evaluateVenueImpact(team, matchDetails, venueStatsData) {
+        if (!venueStatsData || !venueStatsData.success) return 2.5; // Neutral score
+        
+        let score = 2.5; // Start with neutral score
+        
+        try {
+            const venueData = venueStatsData.data?.venueStats || venueStatsData.venueStats;
+            
+            if (venueData) {
+                // Analyze venue characteristics
+                const avgFirstInnings = venueData.avg_first_innings_score || 0;
+                const avgSecondInnings = venueData.avg_second_innings_score || 0;
+                const pitchType = venueData.pitch_type || 'neutral';
+                
+                // Count players by role
+                const composition = this.analyzeTeamComposition(team.players || []);
+                
+                // Score based on venue characteristics
+                if (pitchType === 'batting' && composition.batsmen >= 5) {
+                    score += 1.5;
+                } else if (pitchType === 'bowling' && composition.bowlers >= 5) {
+                    score += 1.5;
+                }
+                
+                // Bonus for balanced team on neutral pitch
+                if (pitchType === 'neutral' && composition.batsmen >= 4 && composition.bowlers >= 4) {
+                    score += 1;
+                }
+            }
+        } catch (error) {
+            console.error('Error evaluating venue impact:', error);
+        }
+        
+        return Math.min(Math.max(score, 0), 5);
+    }
+
+    evaluateFormRecency(team, matchDetails, teamFormData) {
+        if (!teamFormData || !teamFormData.success) return 2.5; // Neutral score
+        
+        let score = 2.5; // Start with neutral score
+        
+        try {
+            const formData = teamFormData.data || teamFormData;
+            
+            // Analyze recent form data
+            if (formData.recent_matches && formData.recent_matches.length > 0) {
+                const recentMatches = formData.recent_matches.slice(0, 5); // Last 5 matches
+                const wins = recentMatches.filter(match => match.result === 'W').length;
+                const winRate = (wins / recentMatches.length) * 100;
+                
+                // Score based on recent form
+                if (winRate >= 80) score += 2;
+                else if (winRate >= 60) score += 1.5;
+                else if (winRate >= 40) score += 1;
+            }
+        } catch (error) {
+            console.error('Error evaluating form recency:', error);
+        }
+        
+        return Math.min(Math.max(score, 0), 5);
+    }
+
+    evaluateCovariance(team, allTeams, teamIndex) {
+        if (allTeams.length <= 1) return 5; // Perfect score for single team
+        
+        let score = 5; // Start with perfect score
+        let totalDuplicates = 0;
+        
+        // Check for player duplication with other teams
+        for (let i = 0; i < allTeams.length; i++) {
+            if (i === teamIndex) continue; // Skip self
+            
+            const otherTeam = allTeams[i];
+            const duplicates = this.countPlayerDuplicates(team.players || [], otherTeam.players || []);
+            totalDuplicates += duplicates;
+        }
+        
+        // Penalize for duplicates
+        if (totalDuplicates >= 6) score -= 3;
+        else if (totalDuplicates >= 4) score -= 2;
+        else if (totalDuplicates >= 2) score -= 1;
+        
+        return Math.min(Math.max(score, 0), 5);
+    }
+
+    evaluateUniqueness(team, allTeams, teamIndex) {
+        if (allTeams.length <= 1) return 5; // Perfect score for single team
+        
+        let score = 5; // Start with perfect score
+        let uniquePlayers = 0;
+        
+        // Count unique players
+        const teamPlayers = team.players || [];
+        for (const player of teamPlayers) {
+            let isUnique = true;
+            
+            for (let i = 0; i < allTeams.length; i++) {
+                if (i === teamIndex) continue; // Skip self
+                
+                const otherTeam = allTeams[i];
+                const otherPlayers = otherTeam.players || [];
+                
+                if (otherPlayers.some(otherPlayer => 
+                    this.normalizePlayerName(otherPlayer) === this.normalizePlayerName(player)
+                )) {
+                    isUnique = false;
+                    break;
+                }
+            }
+            
+            if (isUnique) uniquePlayers++;
+        }
+        
+        // Score based on uniqueness
+        const uniquenessPercentage = teamPlayers.length > 0 ? (uniquePlayers / teamPlayers.length) * 100 : 0;
+        
+        if (uniquenessPercentage >= 80) score = 5;
+        else if (uniquenessPercentage >= 60) score = 4;
+        else if (uniquenessPercentage >= 40) score = 3;
+        else if (uniquenessPercentage >= 20) score = 2;
+        else score = 1;
+        
+        return score;
+    }
+
+    countPlayerDuplicates(players1, players2) {
+        let duplicates = 0;
+        
+        for (const player1 of players1) {
+            const normalizedPlayer1 = this.normalizePlayerName(player1);
+            
+            for (const player2 of players2) {
+                const normalizedPlayer2 = this.normalizePlayerName(player2);
+                
+                if (normalizedPlayer1 === normalizedPlayer2) {
+                    duplicates++;
+                    break;
+                }
+            }
+        }
+        
+        return duplicates;
+    }
+
+    generateTeamRecommendations(evaluation, team, matchDetails) {
+        const recommendations = [];
+        
+        // Team Balance recommendations
+        if (evaluation.scores.teamBalance < 3) {
+            recommendations.push('Consider adding more balanced player roles');
+        } else if (evaluation.scores.teamBalance >= 4) {
+            // Well-balanced team - provide venue/pitch recommendations
+            const venueRecommendation = this.generateVenueRecommendation(team, matchDetails);
+            if (venueRecommendation) {
+                recommendations.push(venueRecommendation);
+            }
+        }
+        
+        // Captaincy recommendations
+        if (evaluation.scores.captaincyImpact < 3) {
+            recommendations.push('Set captain and vice-captain for better impact');
+        }
+        
+        // Uniqueness recommendations
+        if (evaluation.scores.uniqueness < 3) {
+            recommendations.push('Consider more differential picks for uniqueness');
+        }
+        
+        // Covariance recommendations
+        if (evaluation.scores.covariance < 3) {
+            recommendations.push('Too many duplicate players with other teams');
+        }
+        
+        return recommendations;
+    }
+
+    generateVenueRecommendation(team, matchDetails) {
+        try {
+            // Get venue stats from session storage or fetch if needed
+            const venueStatsData = JSON.parse(sessionStorage.getItem('venueStatsData') || '{}');
+            
+            if (!venueStatsData || !venueStatsData.success) {
+                return null;
+            }
+
+            const venueData = venueStatsData.data?.venueStats || venueStatsData.venueStats;
+            if (!venueData) {
+                return null;
+            }
+
+            const composition = this.analyzeTeamComposition(team.players || []);
+            const pitchType = venueData.pitch_type || 'neutral';
+            const avgFirstInnings = venueData.avg_first_innings_score || 0;
+            const avgSecondInnings = venueData.avg_second_innings_score || 0;
+
+            // Analyze team composition
+            const batsmenCount = composition.batsmen || 0;
+            const bowlersCount = composition.bowlers || 0;
+            const allRoundersCount = composition.allRounders || 0;
+
+            // Generate venue-specific recommendations
+            if (pitchType === 'batting') {
+                if (batsmenCount >= 5) {
+                    return `🏏 Batting pitch detected - Your batting-heavy team (${batsmenCount} batsmen) is well-suited for this venue`;
+                } else if (bowlersCount >= 5) {
+                    return `🏏 Batting pitch detected - Consider adding more batsmen for this high-scoring venue`;
+                }
+            } else if (pitchType === 'bowling') {
+                if (bowlersCount >= 5) {
+                    return `🏏 Bowling pitch detected - Your bowling-heavy team (${bowlersCount} bowlers) is ideal for this venue`;
+                } else if (batsmenCount >= 5) {
+                    return `🏏 Bowling pitch detected - Consider adding more bowlers for this low-scoring venue`;
+                }
+            } else if (pitchType === 'neutral') {
+                if (batsmenCount >= 4 && bowlersCount >= 4) {
+                    return `🏏 Neutral pitch - Your balanced team (${batsmenCount} batsmen, ${bowlersCount} bowlers) is perfect for this venue`;
+                }
+            }
+
+            // Score-based recommendations
+            if (avgFirstInnings > 180) {
+                return `🏏 High-scoring venue (avg: ${avgFirstInnings}) - Your team composition should favor batting`;
+            } else if (avgFirstInnings < 150) {
+                return `🏏 Low-scoring venue (avg: ${avgFirstInnings}) - Your team composition should favor bowling`;
+            }
+
+            return null;
+        } catch (error) {
+            console.error('Error generating venue recommendation:', error);
+            return null;
+        }
+    }
+
+    generateComparisonSummary(results) {
+        const summary = {
+            totalTeams: results.teams.length,
+            averageScore: 0,
+            scoreRange: { min: 0, max: 0 },
+            topTeams: [],
+            keyInsights: []
+        };
+        
+        if (results.teams.length > 0) {
+            const scores = results.teams.map(team => team.totalScore);
+            summary.averageScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+            summary.scoreRange.min = Math.min(...scores);
+            summary.scoreRange.max = Math.max(...scores);
+            
+            // Top 3 teams
+            summary.topTeams = results.teams
+                .sort((a, b) => b.totalScore - a.totalScore)
+                .slice(0, 3);
+            
+            // Key insights
+            if (results.bestTeam) {
+                summary.keyInsights.push(`Best team: ${results.bestTeam.teamName} (Score: ${results.bestTeam.totalScore.toFixed(1)})`);
+            }
+            
+            const avgScore = summary.averageScore.toFixed(1);
+            summary.keyInsights.push(`Average team score: ${avgScore}/35`);
+            
+            if (summary.scoreRange.max - summary.scoreRange.min > 10) {
+                summary.keyInsights.push('High variance in team quality');
+            }
+        }
+        
+        return summary;
+    }
+
+    displayComprehensiveComparisonResults(results) {
+        console.log('Displaying comprehensive comparison results...');
+        
+        const resultsContainer = document.getElementById('comprehensive-comparison-results');
+        if (!resultsContainer) return;
+
+        // Hide loading state
+        this.hideComprehensiveComparisonLoading();
+
+        // Generate results HTML
+        const resultsHtml = `
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <!-- Summary Section -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                        <span class="text-primary mr-2">🏆</span>
+                        Comparison Summary
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 text-center flex flex-col justify-center items-center min-h-[80px]">
+                            <div class="text-3xl font-bold text-blue-600 mb-1">${results.summary.totalTeams}</div>
+                            <div class="text-sm text-blue-700 font-medium">Teams Analyzed</div>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg border border-green-200 text-center flex flex-col justify-center items-center min-h-[80px]">
+                            <div class="text-3xl font-bold text-green-600 mb-1">${results.summary.averageScore.toFixed(1)}</div>
+                            <div class="text-sm text-green-700 font-medium">Average Score</div>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-lg border border-purple-200 text-center flex flex-col justify-center items-center min-h-[80px]">
+                            <div class="text-3xl font-bold text-purple-600 mb-1">${results.bestTeam ? results.bestTeam.teamName : 'N/A'}</div>
+                            <div class="text-sm text-purple-700 font-medium">Best Team</div>
+                        </div>
+                    </div>
+                    <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                        <h4 class="font-semibold text-sm text-yellow-800 mb-2">Key Insights:</h4>
+                        <ul class="text-sm text-yellow-700 space-y-1">
+                            ${results.summary.keyInsights.map(insight => `<li>• ${insight}</li>`).join('')}
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Team Rankings -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Team Rankings</h3>
+                    <div class="space-y-3">
+                        ${results.teams
+                            .sort((a, b) => b.totalScore - a.totalScore)
+                            .map((team, index) => `
+                                <div class="flex items-center justify-between p-4 rounded-lg border ${index === 0 ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200 bg-gray-50'}">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                                            index === 0 ? 'bg-yellow-500 text-white' : 
+                                            index === 1 ? 'bg-gray-400 text-white' : 
+                                            index === 2 ? 'bg-orange-500 text-white' : 'bg-gray-300 text-gray-700'
+                                        }">
+                                            ${index + 1}
+                                        </div>
+                                        <div>
+                                            <div class="font-semibold text-gray-900">${team.teamName}</div>
+                                            <div class="text-sm text-gray-600">Score: ${team.totalScore.toFixed(1)}/35</div>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-lg font-bold text-gray-900">${team.totalScore.toFixed(1)}</div>
+                                        <div class="text-xs text-gray-500">Total Score</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                    </div>
+                </div>
+
+                <!-- Detailed Scores -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Detailed Scores by Criteria</h3>
+                    
+                    <!-- Criteria Descriptions -->
+                    <div class="space-y-2 mb-4">
+                        <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                            <div class="font-semibold text-blue-800 text-sm">1. Team Balance</div>
+                            <div class="text-xs text-blue-600">Optimal mix of batsmen, bowlers, all-rounders, wicket-keeper</div>
+                        </div>
+                        <div class="bg-green-50 p-3 rounded-lg border border-green-200">
+                            <div class="font-semibold text-green-800 text-sm">2. Captain & Vice-Captain</div>
+                            <div class="text-xs text-green-600">Proper captain selection and multiplier impact</div>
+                        </div>
+                        <div class="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                            <div class="font-semibold text-purple-800 text-sm">3. Matchup Advantage</div>
+                            <div class="text-xs text-purple-600">Historical head-to-head performance analysis</div>
+                        </div>
+                        <div class="bg-orange-50 p-3 rounded-lg border border-orange-200">
+                            <div class="font-semibold text-orange-800 text-sm">4. Venue Impact</div>
+                            <div class="text-xs text-orange-600">Pitch conditions and venue-specific strategy</div>
+                        </div>
+                        <div class="bg-red-50 p-3 rounded-lg border border-red-200">
+                            <div class="font-semibold text-red-800 text-sm">5. Form & Recency</div>
+                            <div class="text-xs text-red-600">Recent player and team performance trends</div>
+                        </div>
+                        <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-200">
+                            <div class="font-semibold text-indigo-800 text-sm">6. Covariance</div>
+                            <div class="text-xs text-indigo-600">Player overlap and duplication with other teams</div>
+                        </div>
+                        <div class="bg-teal-50 p-3 rounded-lg border border-teal-200">
+                            <div class="font-semibold text-teal-800 text-sm">7. Uniqueness</div>
+                            <div class="text-xs text-teal-600">Differential picks and strategic uniqueness</div>
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-gray-200">
+                                    <th class="text-left py-2 font-semibold text-gray-700">Team</th>
+                                    <th class="text-center py-2 font-semibold text-gray-700">Balance</th>
+                                    <th class="text-center py-2 font-semibold text-gray-700">Captaincy</th>
+                                    <th class="text-center py-2 font-semibold text-gray-700">Matchup</th>
+                                    <th class="text-center py-2 font-semibold text-gray-700">Venue</th>
+                                    <th class="text-center py-2 font-semibold text-gray-700">Form</th>
+                                    <th class="text-center py-2 font-semibold text-gray-700">Covariance</th>
+                                    <th class="text-center py-2 font-semibold text-gray-700">Uniqueness</th>
+                                    <th class="text-center py-2 font-semibold text-gray-700">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${results.teams
+                                    .sort((a, b) => b.totalScore - a.totalScore)
+                                    .map(team => `
+                                        <tr class="border-b border-gray-100">
+                                            <td class="py-2 font-medium text-gray-900">${team.teamName}</td>
+                                            <td class="py-2 text-center">${team.scores.teamBalance.toFixed(1)}</td>
+                                            <td class="py-2 text-center">${team.scores.captaincyImpact.toFixed(1)}</td>
+                                            <td class="py-2 text-center">${team.scores.matchupAdvantage.toFixed(1)}</td>
+                                            <td class="py-2 text-center">${team.scores.venueImpact.toFixed(1)}</td>
+                                            <td class="py-2 text-center">${team.scores.formRecency.toFixed(1)}</td>
+                                            <td class="py-2 text-center">${team.scores.covariance.toFixed(1)}</td>
+                                            <td class="py-2 text-center">${team.scores.uniqueness.toFixed(1)}</td>
+                                            <td class="py-2 text-center font-bold text-primary">${team.totalScore.toFixed(1)}</td>
+                                        </tr>
+                                    `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Recommendations -->
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Team Recommendations</h3>
+                    <div class="space-y-4">
+                        ${results.teams.map(team => `
+                            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                <h4 class="font-semibold text-gray-900 mb-2">${team.teamName}</h4>
+                                ${team.recommendations.length > 0 ? `
+                                    <ul class="text-sm text-gray-700 space-y-1">
+                                        ${team.recommendations.map(rec => {
+                                            // Check if it's a venue recommendation (contains 🏏)
+                                            if (rec.includes('🏏')) {
+                                                return `<li class="text-blue-600 font-medium">🏏 ${rec.replace('🏏 ', '')}</li>`;
+                                            }
+                                            return `<li>• ${rec}</li>`;
+                                        }).join('')}
+                                    </ul>
+                                ` : `
+                                    <p class="text-sm text-green-600">✅ No major improvements needed</p>
+                                `}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        resultsContainer.innerHTML = resultsHtml;
+        
+        // Scroll to results
+        resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        
+        this.components.toast.showSuccess('Comprehensive comparison completed!');
+    }
+
+    showComprehensiveComparisonLoading() {
+        const resultsContainer = document.getElementById('comprehensive-comparison-results');
+        if (!resultsContainer) return;
+
+        resultsContainer.innerHTML = `
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-center py-8">
+                    <div class="relative">
+                        <div class="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                    </div>
+                    <span class="ml-3 text-sm text-gray-600">Performing comprehensive analysis...</span>
+                </div>
+                <div class="text-center text-sm text-gray-500">
+                    Evaluating teams on 7 criteria: Balance, Captaincy, Matchup, Venue, Form, Covariance, and Uniqueness
+                </div>
+            </div>
+        `;
+    }
+
+    hideComprehensiveComparisonLoading() {
+        // Loading state is replaced by results, so no specific hide action needed
     }
 }
 
