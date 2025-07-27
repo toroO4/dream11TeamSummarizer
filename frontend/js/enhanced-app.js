@@ -531,7 +531,7 @@ class EnhancedCricketAnalyzerApp {
             teams = Array.from(teamsSet);
         }
 
-        const teamOptions = teams.sort().map(teamName => {
+        const teamOptions = teams.map(teamName => {
             const logo = this.getTeamLogo(teamName);
             return `<option value="${teamName}">${logo.short} - ${teamName}</option>`;
         }).join('');

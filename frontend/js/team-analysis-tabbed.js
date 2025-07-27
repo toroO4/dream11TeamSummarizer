@@ -491,7 +491,7 @@ class TabbedTeamAnalysisApp {
         }
 
         // Create cache key for validation
-        const cacheKey = `${JSON.stringify(players.sort())}-${this.currentMatchDetails.teamA}-${this.currentMatchDetails.teamB}`;
+        const cacheKey = `${JSON.stringify([...players].sort())}-${this.currentMatchDetails.teamA}-${this.currentMatchDetails.teamB}`;
         
         // Check if we have cached validation results
         if (this.cache.validationResults.has(cacheKey)) {
