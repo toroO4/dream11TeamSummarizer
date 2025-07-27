@@ -18,6 +18,9 @@ class TabbedTeamAnalysisApp {
             teamAnalysisData: new Map(),
             lastMatchDetails: null
         };
+        
+        // Store last comparison results for persistence
+        this.lastComparisonResults = null;
         this.lastTabSwitchTime = 0;
         this.TAB_SWITCH_DEBOUNCE = 1000; // 1 second debounce
         
@@ -49,6 +52,11 @@ class TabbedTeamAnalysisApp {
             const element = document.getElementById(id);
             console.log(`${id}: ${element ? 'FOUND' : 'NOT FOUND'}`);
         });
+    }
+
+    clearComparisonResults() {
+        console.log('Clearing cached comparison results...');
+        this.lastComparisonResults = null;
     }
 
     initializeComponents() {
@@ -198,12 +206,16 @@ class TabbedTeamAnalysisApp {
             if (teamsData) {
                 this.currentTeams = JSON.parse(teamsData);
                 console.log('Parsed teams:', this.currentTeams);
+                // Clear comparison results when teams change
+                this.clearComparisonResults();
             }
 
             if (matchData) {
                 this.currentMatchDetails = JSON.parse(matchData);
                 console.log('Parsed match details:', this.currentMatchDetails);
                 this.displayMatchInfo();
+                // Clear comparison results when match details change
+                this.clearComparisonResults();
             }
 
             // If no data exists, create sample data for testing
@@ -1528,6 +1540,8 @@ class TabbedTeamAnalysisApp {
         `).join('');
     }
 
+
+
     renderPlayerAnalysis(analysis) {
         const sections = [];
 
@@ -1587,6 +1601,8 @@ class TabbedTeamAnalysisApp {
 
         return sections.join('');
     }
+
+
 
     renderSuggestedFixes(analysis) {
         const fixes = [];
@@ -1706,6 +1722,8 @@ class TabbedTeamAnalysisApp {
             </div>
         `;
     }
+
+
 
     async loadTeamAnalysisData() {
         console.log('Loading additional team analysis data from API...');
@@ -2116,30 +2134,52 @@ class TabbedTeamAnalysisApp {
             return;
         }
 
-        // Generate team preview cards for comparison
-        comparisonContainer.innerHTML = `
-            <div>
-                <div class="flex items-center justify-between mb-4">
-                    <h4 class="font-semibold text-sm text-gray-900 flex items-center">
-                        <span class="text-primary mr-2">🏆</span>
-                        Team Comparison (${this.currentTeams.length})
-                    </h4>
-                    <button id="comprehensive-compare-btn" class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2">
-                        <span>🔍</span>
-                        Compare All Teams
-                    </button>
+        // Check if we have cached comparison results
+        if (this.lastComparisonResults) {
+            // Generate container with cached results and hidden button
+            comparisonContainer.innerHTML = `
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="font-semibold text-sm text-gray-900 flex items-center">
+                            Team Comparison (${this.currentTeams.length})
+                        </h4>
+                        <button id="comprehensive-compare-btn" class="bg-primary hover:bg-primary/90 text-white px-3 py-1 rounded-lg text-xs font-medium transition-colors duration-200" style="display: none;">
+                            Compare All Teams
+                        </button>
+                    </div>
+                    ${this.generateTeamPreviewCards()}
+                    <div id="comprehensive-comparison-results" class="mt-6">
+                        <!-- Comparison results will be displayed here -->
+                    </div>
                 </div>
-                ${this.generateTeamPreviewCards()}
-                <div id="comprehensive-comparison-results" class="mt-6">
-                    <!-- Comparison results will be displayed here -->
+            `;
+            
+            // Display the cached results
+            this.displayComprehensiveComparisonResults(this.lastComparisonResults);
+        } else {
+            // Generate team preview cards for comparison with visible button
+            comparisonContainer.innerHTML = `
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="font-semibold text-sm text-gray-900 flex items-center">
+                            Team Comparison (${this.currentTeams.length})
+                        </h4>
+                        <button id="comprehensive-compare-btn" class="bg-primary hover:bg-primary/90 text-white px-3 py-3 rounded-lg text-xs font-medium transition-colors duration-200">
+                            Compare All Teams
+                        </button>
+                    </div>
+                    ${this.generateTeamPreviewCards()}
+                    <div id="comprehensive-comparison-results" class="mt-6">
+                        <!-- Comparison results will be displayed here -->
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
 
-        // Add event listener for the comparison button
-        const compareBtn = document.getElementById('comprehensive-compare-btn');
-        if (compareBtn) {
-            compareBtn.addEventListener('click', () => this.handleComprehensiveComparison());
+            // Add event listener for the comparison button
+            const compareBtn = document.getElementById('comprehensive-compare-btn');
+            if (compareBtn) {
+                compareBtn.addEventListener('click', () => this.handleComprehensiveComparison());
+            }
         }
     }
 
@@ -3157,8 +3197,17 @@ class TabbedTeamAnalysisApp {
                 venueStatsData
             );
 
+            // Store results for persistence
+            this.lastComparisonResults = comparisonResults;
+            
             // Display results
             this.displayComprehensiveComparisonResults(comparisonResults);
+            
+            // Hide the compare button after successful comparison
+            const compareBtn = document.getElementById('comprehensive-compare-btn');
+            if (compareBtn) {
+                compareBtn.style.display = 'none';
+            }
 
         } catch (error) {
             console.error('Comprehensive comparison error:', error);
@@ -3602,59 +3651,60 @@ class TabbedTeamAnalysisApp {
 
         // Generate results HTML
         const resultsHtml = `
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="space-y-4">
                 <!-- Summary Section -->
-                <div class="mb-6">
-                    <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                        <span class="text-primary mr-2">🏆</span>
-                        Comparison Summary
-                    </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 text-center flex flex-col justify-center items-center min-h-[80px]">
-                            <div class="text-3xl font-bold text-blue-600 mb-1">${results.summary.totalTeams}</div>
-                            <div class="text-sm text-blue-700 font-medium">Teams Analyzed</div>
+                <div class="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                    <div class="flex items-center mb-2">
+                        <span class="font-bold text-sm text-gray-900">Comparison Summary</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 mb-3">
+                        <div class="bg-white rounded-lg p-2 border border-gray-100 text-center">
+                            <div class="text-lg font-bold text-primary">${results.summary.totalTeams}</div>
+                            <div class="text-xs text-gray-600">Teams Analyzed</div>
                         </div>
-                        <div class="bg-green-50 p-4 rounded-lg border border-green-200 text-center flex flex-col justify-center items-center min-h-[80px]">
-                            <div class="text-3xl font-bold text-green-600 mb-1">${results.summary.averageScore.toFixed(1)}</div>
-                            <div class="text-sm text-green-700 font-medium">Average Score</div>
+                        <div class="bg-white rounded-lg p-2 border border-gray-100 text-center">
+                            <div class="text-lg font-bold text-primary">${results.summary.averageScore.toFixed(1)}</div>
+                            <div class="text-xs text-gray-600">Average Score</div>
                         </div>
-                        <div class="bg-purple-50 p-4 rounded-lg border border-purple-200 text-center flex flex-col justify-center items-center min-h-[80px]">
-                            <div class="text-3xl font-bold text-purple-600 mb-1">${results.bestTeam ? results.bestTeam.teamName : 'N/A'}</div>
-                            <div class="text-sm text-purple-700 font-medium">Best Team</div>
+                        <div class="bg-white rounded-lg p-2 border border-gray-100 text-center">
+                            <div class="text-lg font-bold text-primary">${results.bestTeam ? results.bestTeam.teamName : 'N/A'}</div>
+                            <div class="text-xs text-gray-600">Best Team</div>
                         </div>
                     </div>
-                    <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-                        <h4 class="font-semibold text-sm text-yellow-800 mb-2">Key Insights:</h4>
-                        <ul class="text-sm text-yellow-700 space-y-1">
+                    <div class="bg-white rounded-lg p-2 border border-gray-100">
+                        <div class="font-semibold text-xs text-gray-700 mb-1">Key Insights:</div>
+                        <ul class="text-xs text-gray-600 space-y-1">
                             ${results.summary.keyInsights.map(insight => `<li>• ${insight}</li>`).join('')}
                         </ul>
                     </div>
                 </div>
 
                 <!-- Team Rankings -->
-                <div class="mb-6">
-                    <h3 class="text-lg font-bold text-gray-900 mb-4">Team Rankings</h3>
-                    <div class="space-y-3">
+                <div class="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                    <div class="flex items-center mb-2">
+                        <span class="font-bold text-sm text-gray-900">Team Rankings</span>
+                    </div>
+                    <div class="space-y-2">
                         ${results.teams
                             .sort((a, b) => b.totalScore - a.totalScore)
                             .map((team, index) => `
-                                <div class="flex items-center justify-between p-4 rounded-lg border ${index === 0 ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200 bg-gray-50'}">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                                            index === 0 ? 'bg-yellow-500 text-white' : 
+                                <div class="flex items-center justify-between p-2 rounded-lg border ${index === 0 ? 'border-primary bg-white' : 'border-gray-200 bg-white'}">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
+                                            index === 0 ? 'bg-primary text-white' : 
                                             index === 1 ? 'bg-gray-400 text-white' : 
                                             index === 2 ? 'bg-orange-500 text-white' : 'bg-gray-300 text-gray-700'
                                         }">
                                             ${index + 1}
                                         </div>
                                         <div>
-                                            <div class="font-semibold text-gray-900">${team.teamName}</div>
-                                            <div class="text-sm text-gray-600">Score: ${team.totalScore.toFixed(1)}/35</div>
+                                            <div class="font-semibold text-sm text-gray-900">${team.teamName}</div>
+                                            <div class="text-xs text-gray-600">Score: ${team.totalScore.toFixed(1)}/35</div>
                                         </div>
                                     </div>
                                     <div class="text-right">
-                                        <div class="text-lg font-bold text-gray-900">${team.totalScore.toFixed(1)}</div>
-                                        <div class="text-xs text-gray-500">Total Score</div>
+                                        <div class="text-sm font-bold text-primary">${team.totalScore.toFixed(1)}</div>
+                                        <div class="text-xs text-gray-500">Total</div>
                                     </div>
                                 </div>
                             `).join('')}
@@ -3662,54 +3712,37 @@ class TabbedTeamAnalysisApp {
                 </div>
 
                 <!-- Detailed Scores -->
-                <div class="mb-6">
-                    <h3 class="text-lg font-bold text-gray-900 mb-4">Detailed Scores by Criteria</h3>
+                <div class="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                    <div class="flex items-center mb-2">
+                        <span class="font-bold text-sm text-gray-900">Detailed Scores by Criteria</span>
+                    </div>
                     
-                    <!-- Criteria Descriptions -->
-                    <div class="space-y-2 mb-4">
-                        <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                            <div class="font-semibold text-blue-800 text-sm">1. Team Balance</div>
-                            <div class="text-xs text-blue-600">Optimal mix of batsmen, bowlers, all-rounders, wicket-keeper</div>
-                        </div>
-                        <div class="bg-green-50 p-3 rounded-lg border border-green-200">
-                            <div class="font-semibold text-green-800 text-sm">2. Captain & Vice-Captain</div>
-                            <div class="text-xs text-green-600">Proper captain selection and multiplier impact</div>
-                        </div>
-                        <div class="bg-purple-50 p-3 rounded-lg border border-purple-200">
-                            <div class="font-semibold text-purple-800 text-sm">3. Matchup Advantage</div>
-                            <div class="text-xs text-purple-600">Historical head-to-head performance analysis</div>
-                        </div>
-                        <div class="bg-orange-50 p-3 rounded-lg border border-orange-200">
-                            <div class="font-semibold text-orange-800 text-sm">4. Venue Impact</div>
-                            <div class="text-xs text-orange-600">Pitch conditions and venue-specific strategy</div>
-                        </div>
-                        <div class="bg-red-50 p-3 rounded-lg border border-red-200">
-                            <div class="font-semibold text-red-800 text-sm">5. Form & Recency</div>
-                            <div class="text-xs text-red-600">Recent player and team performance trends</div>
-                        </div>
-                        <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-200">
-                            <div class="font-semibold text-indigo-800 text-sm">6. Covariance</div>
-                            <div class="text-xs text-indigo-600">Player overlap and duplication with other teams</div>
-                        </div>
-                        <div class="bg-teal-50 p-3 rounded-lg border border-teal-200">
-                            <div class="font-semibold text-teal-800 text-sm">7. Uniqueness</div>
-                            <div class="text-xs text-teal-600">Differential picks and strategic uniqueness</div>
+                    <!-- Criteria Legend -->
+                    <div class="bg-white rounded-lg p-2 border border-gray-100 mb-3">
+                        <div class="grid grid-cols-2 gap-1 text-xs">
+                            <div class="text-gray-700">• <span class="font-medium">Balance:</span> Team composition</div>
+                            <div class="text-gray-700">• <span class="font-medium">Captaincy:</span> Captain selection</div>
+                            <div class="text-gray-700">• <span class="font-medium">Matchup:</span> Head-to-head record</div>
+                            <div class="text-gray-700">• <span class="font-medium">Venue:</span> Pitch conditions</div>
+                            <div class="text-gray-700">• <span class="font-medium">Form:</span> Recent performance</div>
+                            <div class="text-gray-700">• <span class="font-medium">Covariance:</span> Player overlap</div>
+                            <div class="text-gray-700">• <span class="font-medium">Uniqueness:</span> Differential picks</div>
                         </div>
                     </div>
                     
                     <div class="overflow-x-auto">
-                        <table class="w-full text-sm">
+                        <table class="w-full text-xs bg-white rounded-lg border border-gray-100">
                             <thead>
-                                <tr class="border-b border-gray-200">
-                                    <th class="text-left py-2 font-semibold text-gray-700">Team</th>
-                                    <th class="text-center py-2 font-semibold text-gray-700">Balance</th>
-                                    <th class="text-center py-2 font-semibold text-gray-700">Captaincy</th>
-                                    <th class="text-center py-2 font-semibold text-gray-700">Matchup</th>
-                                    <th class="text-center py-2 font-semibold text-gray-700">Venue</th>
-                                    <th class="text-center py-2 font-semibold text-gray-700">Form</th>
-                                    <th class="text-center py-2 font-semibold text-gray-700">Covariance</th>
-                                    <th class="text-center py-2 font-semibold text-gray-700">Uniqueness</th>
-                                    <th class="text-center py-2 font-semibold text-gray-700">Total</th>
+                                <tr class="border-b border-gray-200 bg-gray-50">
+                                    <th class="text-left py-2 px-2 font-semibold text-gray-700">Team</th>
+                                    <th class="text-center py-2 px-1 font-semibold text-gray-700">Bal</th>
+                                    <th class="text-center py-2 px-1 font-semibold text-gray-700">Cap</th>
+                                    <th class="text-center py-2 px-1 font-semibold text-gray-700">Mat</th>
+                                    <th class="text-center py-2 px-1 font-semibold text-gray-700">Ven</th>
+                                    <th class="text-center py-2 px-1 font-semibold text-gray-700">For</th>
+                                    <th class="text-center py-2 px-1 font-semibold text-gray-700">Cov</th>
+                                    <th class="text-center py-2 px-1 font-semibold text-gray-700">Uniq</th>
+                                    <th class="text-center py-2 px-2 font-semibold text-primary">Total</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -3717,15 +3750,15 @@ class TabbedTeamAnalysisApp {
                                     .sort((a, b) => b.totalScore - a.totalScore)
                                     .map(team => `
                                         <tr class="border-b border-gray-100">
-                                            <td class="py-2 font-medium text-gray-900">${team.teamName}</td>
-                                            <td class="py-2 text-center">${team.scores.teamBalance.toFixed(1)}</td>
-                                            <td class="py-2 text-center">${team.scores.captaincyImpact.toFixed(1)}</td>
-                                            <td class="py-2 text-center">${team.scores.matchupAdvantage.toFixed(1)}</td>
-                                            <td class="py-2 text-center">${team.scores.venueImpact.toFixed(1)}</td>
-                                            <td class="py-2 text-center">${team.scores.formRecency.toFixed(1)}</td>
-                                            <td class="py-2 text-center">${team.scores.covariance.toFixed(1)}</td>
-                                            <td class="py-2 text-center">${team.scores.uniqueness.toFixed(1)}</td>
-                                            <td class="py-2 text-center font-bold text-primary">${team.totalScore.toFixed(1)}</td>
+                                            <td class="py-2 px-2 font-medium text-gray-900">${team.teamName}</td>
+                                            <td class="py-2 px-1 text-center">${team.scores.teamBalance.toFixed(1)}</td>
+                                            <td class="py-2 px-1 text-center">${team.scores.captaincyImpact.toFixed(1)}</td>
+                                            <td class="py-2 px-1 text-center">${team.scores.matchupAdvantage.toFixed(1)}</td>
+                                            <td class="py-2 px-1 text-center">${team.scores.venueImpact.toFixed(1)}</td>
+                                            <td class="py-2 px-1 text-center">${team.scores.formRecency.toFixed(1)}</td>
+                                            <td class="py-2 px-1 text-center">${team.scores.covariance.toFixed(1)}</td>
+                                            <td class="py-2 px-1 text-center">${team.scores.uniqueness.toFixed(1)}</td>
+                                            <td class="py-2 px-2 text-center font-bold text-primary">${team.totalScore.toFixed(1)}</td>
                                         </tr>
                                     `).join('')}
                             </tbody>
@@ -3734,24 +3767,26 @@ class TabbedTeamAnalysisApp {
                 </div>
 
                 <!-- Recommendations -->
-                <div>
-                    <h3 class="text-lg font-bold text-gray-900 mb-4">Team Recommendations</h3>
-                    <div class="space-y-4">
+                <div class="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                    <div class="flex items-center mb-2">
+                        <span class="font-bold text-sm text-gray-900">Team Recommendations</span>
+                    </div>
+                    <div class="space-y-2">
                         ${results.teams.map(team => `
-                            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                <h4 class="font-semibold text-gray-900 mb-2">${team.teamName}</h4>
+                            <div class="bg-white rounded-lg p-2 border border-gray-100">
+                                <div class="font-semibold text-xs text-gray-900 mb-1">${team.teamName}</div>
                                 ${team.recommendations.length > 0 ? `
-                                    <ul class="text-sm text-gray-700 space-y-1">
+                                    <ul class="text-xs text-gray-600 space-y-1">
                                         ${team.recommendations.map(rec => {
                                             // Check if it's a venue recommendation (contains 🏏)
                                             if (rec.includes('🏏')) {
-                                                return `<li class="text-blue-600 font-medium">🏏 ${rec.replace('🏏 ', '')}</li>`;
+                                                return `<li class="text-primary font-medium">• ${rec.replace('🏏 ', '')}</li>`;
                                             }
                                             return `<li>• ${rec}</li>`;
                                         }).join('')}
                                     </ul>
                                 ` : `
-                                    <p class="text-sm text-green-600">✅ No major improvements needed</p>
+                                    <p class="text-xs text-green-600">✅ No major improvements needed</p>
                                 `}
                             </div>
                         `).join('')}
