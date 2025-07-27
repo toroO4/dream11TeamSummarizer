@@ -940,62 +940,59 @@ class TabbedTeamAnalysisApp {
             const teamAnalysis = await this.generateComprehensiveTeamAnalysis();
             
             summaryList.innerHTML = `
-                <!-- Team Categorization -->
-                <div class="space-y-4">
+                <div class="space-y-3">
                     <!-- Basic Team List -->
-                    <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                    <div class="bg-white rounded-lg p-3 border border-gray-100 shadow-sm">
                         <h4 class="font-semibold text-sm text-gray-900 mb-3 flex items-center">
-                            <span class="text-primary mr-2"></span>
+                            <div class="w-2 h-2 rounded-full bg-primary mr-2"></div>
                             Uploaded Teams (${this.currentTeams.length})
                         </h4>
                         <div class="space-y-2">
                             ${this.currentTeams.map((team, index) => `
-                <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                    <div class="flex items-center justify-between mb-2">
-                        <h5 class="font-semibold text-sm text-gray-900">${team.name}</h5>
-                        <span class="text-xs text-gray-500">${team.players.length} players</span>
-                    </div>
-                    <div class="text-xs text-gray-600 mb-2">
-                        <div>Captain: ${team.captain || 'Not selected'}</div>
-                        <div>Vice-Captain: ${team.viceCaptain || 'Not selected'}</div>
-                    </div>
-                    <div class="text-xs text-gray-500">
-                        ${team.source === 'screenshot' ? '📸 Screenshot' : '📊 CSV'}
-                    </div>
-                </div>
+                                <div class="bg-white rounded-lg p-2.5 border border-gray-100 hover:border-primary/20 transition-colors">
+                                    <div class="flex items-center justify-between mb-1.5">
+                                        <h5 class="font-semibold text-sm text-gray-900">${team.name}</h5>
+                                        <span class="text-xs text-primary font-medium">${team.players.length} players</span>
+                                    </div>
+                                    <div class="text-xs text-gray-600 space-y-0.5 mb-1.5">
+                                        <div>Captain: ${team.captain || 'Not selected'}</div>
+                                        <div>Vice-Captain: ${team.viceCaptain || 'Not selected'}</div>
+                                    </div>
+                                    <div class="text-xs text-gray-500">
+                                        ${team.source === 'screenshot' ? '📸 Screenshot' : '📊 CSV'}
+                                    </div>
+                                </div>
                             `).join('')}
                         </div>
                     </div>
 
-                    <!-- Team Categorization -->
-                    <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                    <!-- Pre-Match Insights -->
+                    <div class="bg-gray-50 rounded-lg p-3 border border-gray-100">
                         <h4 class="font-semibold text-sm text-gray-900 mb-3 flex items-center">
-                            <span class="text-primary mr-2"></span>
+                            <div class="w-1 h-4 bg-primary rounded-sm mr-2"></div>
                             Pre-Match Insights
                         </h4>
-                        <div class="space-y-3">
+                        <div class="space-y-2">
                             ${this.renderTeamCategorization(teamAnalysis)}
                         </div>
                     </div>
 
-
-
                     <!-- Player Analysis -->
-                    <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-                        <h4 class="font-semibold text-sm text-gray-900 mb-3 flex items-center">
-                            <span class="text-primary mr-2"></span>
+                    <div class="bg-white rounded-lg p-3 border border-primary/20">
+                        <h4 class="font-semibold text-sm text-primary mb-3 flex items-center">
+                            <div class="w-3 h-3 border-2 border-primary rounded-full mr-2"></div>
                             Player Analysis
                         </h4>
-                        <div class="space-y-3">
+                        <div class="space-y-2">
                             ${this.renderPlayerAnalysis(teamAnalysis)}
                         </div>
                     </div>
 
-                    <!-- Suggested Fixes -->
-                    <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                    <!-- Suggestions -->
+                    <div class="bg-gradient-to-r from-primary/5 to-transparent rounded-lg p-3 border border-gray-100">
                         <h4 class="font-semibold text-sm text-gray-900 mb-3 flex items-center">
-                            <span class="text-primary mr-2"></span>
-                            Suggested Fixes
+                            <div class="w-2 h-2 bg-gradient-to-r from-primary to-primary/60 rounded-full mr-2"></div>
+                            Suggestions
                         </h4>
                         <div class="space-y-2">
                             ${this.renderSuggestedFixes(teamAnalysis)}
