@@ -1,4 +1,4 @@
-# 🏏 Dream11 Team Analyzer
+# 🏏 Dream11 Team Summarizer
 
 AI-powered fantasy cricket team analysis with OCR extraction, performance insights, and comprehensive team comparison.
 
@@ -13,7 +13,7 @@ AI-powered fantasy cricket team analysis with OCR extraction, performance insigh
 
 ## 🏗️ Architecture
 
-**Frontend:** Vanilla HTML/CSS/JavaScript with TailwindCSS
+**Frontend:** HTML/CSS/JavaScript with TailwindCSS
 **Backend:** Node.js/Express API server
 **Database:** Supabase (PostgreSQL)
 **OCR Service:** OCR.space API
